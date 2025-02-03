@@ -2,7 +2,9 @@ import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Plane, Clock, Calendar } from 'lucide-react-native';
-import { FLIGHTS } from './utils/flightData';
+import DATA from './utils/flightData';
+
+const { FLIGHTS, HOLIDAYS, PRODUCTS } = DATA;
 
 const FlightsScreen = () => {
   const renderFlight = ({ item }) => (

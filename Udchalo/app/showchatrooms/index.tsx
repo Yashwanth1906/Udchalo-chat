@@ -5,9 +5,9 @@ import { router } from "expo-router";
 import axios from "axios";
 const FlightChatRooms = () => {
 
-  useEffect(()=>{
+  // useEffect(()=>{
     
-  })
+  // })
 
   const flightRooms = [
     { name: "Indigo 6E123", id: "1" },

@@ -5,7 +5,7 @@ import { usePathname, router } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../context/ThemeContext';
 
-export const BottomNav = () => {
+const BottomNav = () => {
   const pathname = usePathname();
   const { colors } = useTheme();
 
@@ -44,7 +44,7 @@ export const BottomNav = () => {
     </BlurView>
   );
 };
-
+export default BottomNav;
 const styles = StyleSheet.create({
   bottomNav: {
     flexDirection: 'row',

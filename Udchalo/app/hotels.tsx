@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star, MapPin, Calendar, Search } from 'lucide-react-native';
 import { useTheme } from './context/ThemeContext';
-import { BottomNav } from './components/BottomNav';
+import  BottomNav  from './components/BottomNav';
 
 const HOTELS = [
   {

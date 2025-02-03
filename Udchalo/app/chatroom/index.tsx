@@ -4,7 +4,7 @@ import { Send, ArrowLeft } from "lucide-react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
-import { BottomNav } from '../components/BottomNav';
+import  BottomNav  from '../components/BottomNav';
 
 interface Message {
   id: string;

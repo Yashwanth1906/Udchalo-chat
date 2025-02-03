@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { LinearGradient } from 'expo-linear-gradient';
 import { FileText, ChevronRight, Clock, CheckCircle } from 'lucide-react-native';
 import { useTheme } from './context/ThemeContext';
-import { BottomNav } from './components/BottomNav';
+import  BottomNav  from './components/BottomNav';
 
 const TAX_SERVICES = [
   {

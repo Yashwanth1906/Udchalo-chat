@@ -1,4 +1,4 @@
-export const MOCK_FLIGHTS = [
+const MOCK_FLIGHTS = [
   {
     id: 'FL001',
     from: 'DEL',
@@ -12,7 +12,7 @@ export const MOCK_FLIGHTS = [
   // Add more flights...
 ];
 
-export const MOCK_USERS = [
+const MOCK_USERS = [
   {
     id: 'U1',
     nickname: 'TravelBuff',
@@ -23,7 +23,7 @@ export const MOCK_USERS = [
   // Add more users...
 ];
 
-export const MOCK_MESSAGES = [
+const MOCK_MESSAGES = [
   {
     id: 'M1',
     flightId: 'FL001',
@@ -38,14 +38,14 @@ export const MOCK_MESSAGES = [
 ];
 
 // Banned words list for message moderation
-export const BANNED_WORDS = [
+const BANNED_WORDS = [
   'hate',
   'spam',
   // Add more banned words...
 ];
 
 // Message moderation function
-export const moderateMessage = (text: string): { isValid: boolean; reason?: string } => {
+const moderateMessage = (text: string): { isValid: boolean; reason?: string } => {
   const containsBannedWord = BANNED_WORDS.some(word => 
     text.toLowerCase().includes(word.toLowerCase())
   );
@@ -55,4 +55,8 @@ export const moderateMessage = (text: string): { isValid: boolean; reason?: stri
   }
   
   return { isValid: true };
-}; 
+};
+
+const MOCK_DATA = { MOCK_FLIGHTS, MOCK_USERS, MOCK_MESSAGES, BANNED_WORDS, moderateMessage };
+
+export default MOCK_DATA;

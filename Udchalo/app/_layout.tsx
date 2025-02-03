@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
-import { ThemeProvider } from './context/ThemeContext';
-import { ChatProvider } from './context/ChatContext';
+import  ThemeProvider  from './context/ThemeContext';
+import  ChatProvider  from './context/ChatContext';
 
 export default function Layout() {
   return (

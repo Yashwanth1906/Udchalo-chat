@@ -1,4 +1,4 @@
-export const FLIGHTS = [
+const FLIGHTS = [
   {
     id: 'FL001',
     from: 'DEL',
@@ -26,7 +26,7 @@ export const FLIGHTS = [
   // Add more flights...
 ];
 
-export const HOLIDAYS = [
+const HOLIDAYS = [
   {
     id: 'H001',
     destination: 'Goa Package',
@@ -38,7 +38,7 @@ export const HOLIDAYS = [
   // Add more holiday packages...
 ];
 
-export const PRODUCTS = {
+const PRODUCTS = {
   electronics: [
     {
       id: 'E001',
@@ -59,4 +59,8 @@ export const PRODUCTS = {
     },
     // Add more clothing...
   ],
-}; 
+};
+
+const DATA = { FLIGHTS, HOLIDAYS, PRODUCTS };
+
+export default DATA;

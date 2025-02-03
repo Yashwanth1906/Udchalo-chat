@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from "react-native";
-import { Bell, Search, MessageCircle, Home, Calendar, DollarSign, Menu } from "lucide-react-native";
+import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, Image } from "react-native";
+import { Bell, Search, MessageCircle, Home, Calendar, DollarSign, Menu, ArrowLeft, Users } from "lucide-react-native";
 import { useLocalSearchParams, router } from "expo-router";
+import { LinearGradient } from 'expo-linear-gradient';
 
 type Passenger = {
   id: number;
@@ -10,11 +11,15 @@ type Passenger = {
   gender: string;
 };
 
+type ChatType = 'individual' | 'group' | null;
+
 const FlightChatRoomDetails: React.FC = () => {
   const { flightName, flightId } = useLocalSearchParams<{ flightName: string; flightId: string }>();
   const [bookingId, setBookingId] = useState<string>("");
   const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [selectedPassenger, setSelectedPassenger] = useState<number | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
+  const [chatType, setChatType] = useState<ChatType>(null);
 
   const fetchBookingDetails = () => {
     // Mock API response
@@ -23,36 +28,93 @@ const FlightChatRoomDetails: React.FC = () => {
       { id: 2, name: "Jane Doe", age: 28, gender: "Female" },
     ];
     setPassengers(mockData);
+    setIsVerified(true);
+  };
+
+  const handleChatSelection = (type: ChatType) => {
+    setChatType(type);
+    if (type === 'group') {
+      router.push("/chatroom?type=group");
+    }
+  };
+
+  const handleJoinChat = () => {
+    if (chatType === 'individual') {
+      router.push("/chatroom?type=individual");
+    }
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>udChalo</Text>
-        <View style={styles.headerIcons}>
-          <Bell color="white" size={20} />
-          <Search color="white" size={20} />
-        </View>
-      </View>
-
-      {/* Content */}
-      <ScrollView style={styles.content}>
-        <Text style={styles.flightDetails}>{flightName} ({flightId})</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Booking ID"
-          placeholderTextColor="#6B7280"
-          value={bookingId}
-          onChangeText={setBookingId}
-        />
-        <TouchableOpacity style={styles.fetchButton} onPress={fetchBookingDetails}>
-          <Text style={styles.fetchButtonText}>Fetch Details</Text>
+      <LinearGradient
+        colors={['#1E40AF', '#3B82F6']}
+        style={styles.header}
+      >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft color="white" size={24} />
         </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Flight Details</Text>
+          <Text style={styles.headerSubtitle}>{flightName} ({flightId})</Text>
+        </View>
+      </LinearGradient>
 
-        {passengers.length > 0 && (
-          <View style={styles.passengerList}>
-            <Text style={styles.sectionTitle}>Select Your Name</Text>
+      <ScrollView style={styles.content}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Enter Booking Details</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Booking ID"
+            placeholderTextColor="#6B7280"
+            value={bookingId}
+            onChangeText={setBookingId}
+          />
+          <TouchableOpacity 
+            style={styles.fetchButton} 
+            onPress={fetchBookingDetails}
+          >
+            <Text style={styles.fetchButtonText}>Verify Booking</Text>
+          </TouchableOpacity>
+        </View>
+
+        {isVerified && (
+          <View style={styles.chatTypeCard}>
+            <Text style={styles.cardTitle}>Select Chat Type</Text>
+            <View style={styles.chatOptions}>
+              <TouchableOpacity 
+                style={[styles.chatOption, chatType === 'individual' && styles.selectedChatOption]}
+                onPress={() => handleChatSelection('individual')}
+              >
+                <LinearGradient
+                  colors={['#3B82F6', '#2563EB']}
+                  style={styles.iconContainer}
+                >
+                  <MessageCircle color="white" size={28} />
+                </LinearGradient>
+                <Text style={styles.chatOptionTitle}>Individual Chat</Text>
+                <Text style={styles.chatOptionDescription}>Chat with specific passengers</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.chatOption, chatType === 'group' && styles.selectedChatOption]}
+                onPress={() => handleChatSelection('group')}
+              >
+                <LinearGradient
+                  colors={['#8B5CF6', '#6D28D9']}
+                  style={styles.iconContainer}
+                >
+                  <Users color="white" size={28} />
+                </LinearGradient>
+                <Text style={styles.chatOptionTitle}>Group Chat</Text>
+                <Text style={styles.chatOptionDescription}>Join flight group chat</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {isVerified && chatType === 'individual' && (
+          <View style={styles.passengerCard}>
+            <Text style={styles.cardTitle}>Select Passenger</Text>
             {passengers.map((passenger) => (
               <TouchableOpacity
                 key={passenger.id}
@@ -62,134 +124,233 @@ const FlightChatRoomDetails: React.FC = () => {
                 ]}
                 onPress={() => setSelectedPassenger(passenger.id)}
               >
-                <Text>{passenger.name}, {passenger.age}, {passenger.gender}</Text>
+                <View style={styles.passengerInfo}>
+                  <Image 
+                    source={{ uri: `https://ui-avatars.com/api/?name=${passenger.name}&background=random` }}
+                    style={styles.avatar}
+                  />
+                  <View style={styles.passengerDetails}>
+                    <Text style={styles.passengerName}>{passenger.name}</Text>
+                    <Text style={styles.passengerSubInfo}>{passenger.age} years • {passenger.gender}</Text>
+                  </View>
+                </View>
+                <View style={[
+                  styles.selectionIndicator,
+                  selectedPassenger === passenger.id && styles.selectedIndicator
+                ]} />
               </TouchableOpacity>
             ))}
           </View>
         )}
       </ScrollView>
 
-      {selectedPassenger && (
-        <TouchableOpacity style={styles.joinButton} onPress={() => router.push("/chatroom")}>
-          <Text style={styles.joinButtonText}>Join Chat</Text>
+      {selectedPassenger && chatType === 'individual' && (
+        <TouchableOpacity 
+          style={styles.joinButton} 
+          onPress={handleJoinChat}
+        >
+          <Text style={styles.joinButtonText}>Start Individual Chat</Text>
         </TouchableOpacity>
       )}
-
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <NavItem icon={Home} title="Home" />
-        <NavItem icon={Calendar} title="Bookings" />
-        <NavItem icon={DollarSign} title="UC Earnings" />
-        <NavItem icon={MessageCircle} title="Chat" />
-        <NavItem icon={Menu} title="Menu" />
-      </View>
     </View>
   );
 };
 
-const NavItem: React.FC<{ icon: React.ElementType; title: string }> = ({ icon: Icon, title }) => (
-  <TouchableOpacity style={styles.navItem}>
-    <Icon size={20} color="#1F2937" />
-    <Text style={styles.navText}>{title}</Text>
-  </TouchableOpacity>
-);
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white"
+    backgroundColor: "#F8FAFC",
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     padding: 16,
-    backgroundColor: "#475569"
+    paddingTop: 48,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
-  headerText: {
+  backButton: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'flex-start',
+  },
+  headerContent: {
+    marginTop: 16,
+  },
+  headerTitle: {
     color: "white",
-    fontSize: 20,
-    fontWeight: "bold"
+    fontSize: 16,
+    fontWeight: "600",
   },
-  headerIcons: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16
+  headerSubtitle: {
+    color: "white",
+    fontSize: 24,
+    fontWeight: "bold",
+    marginTop: 4,
   },
   content: {
     flex: 1,
     padding: 16,
-    marginBottom: 60
   },
-  flightDetails: {
+  card: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+  },
+  cardTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 10
+    color: "#1F2937",
+    marginBottom: 16,
   },
   input: {
     backgroundColor: "#F3F4F6",
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
-    marginBottom: 16
+    color: "#1F2937",
+    marginBottom: 16,
   },
   fetchButton: {
-    backgroundColor: "#2563EB",
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: "center"
+    backgroundColor: "#3B82F6",
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
   },
   fetchButtonText: {
     color: "white",
-    fontWeight: "bold"
-  },
-  passengerList: {
-    marginTop: 20
-  },
-  sectionTitle: {
+    fontWeight: "600",
     fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 10
+  },
+  passengerCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
   passengerItem: {
-    padding: 10,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 8,
-    marginBottom: 8
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: "#F8FAFC",
   },
   selectedPassenger: {
-    backgroundColor: "#93C5FD"
+    backgroundColor: "#EFF6FF",
+    borderColor: "#3B82F6",
+    borderWidth: 1,
+  },
+  passengerInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  passengerDetails: {
+    flex: 1,
+  },
+  passengerName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1F2937",
+  },
+  passengerSubInfo: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  selectionIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#D1D5DB",
+  },
+  selectedIndicator: {
+    backgroundColor: "#3B82F6",
+    borderColor: "#3B82F6",
   },
   joinButton: {
-    backgroundColor: "#10B981",
-    padding: 15,
+    margin: 16,
+    backgroundColor: "#3B82F6",
+    padding: 16,
+    borderRadius: 12,
     alignItems: "center",
-    position: "absolute",
-    bottom: 80,
-    width: "90%",
-    alignSelf: "center",
-    borderRadius: 10
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   joinButtonText: {
     color: "white",
-    fontWeight: "bold"
+    fontSize: 16,
+    fontWeight: "600",
   },
-  bottomNav: {
-    flexDirection: "row",
-    justifyContent: "space-around",
+  chatTypeCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
     padding: 16,
-    backgroundColor: "#E5E7EB",
-    position: "absolute",
-    bottom: 0,
-    width: "100%"
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
-  navItem: {
-    alignItems: "center"
+  chatOptions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
   },
-  navText: {
+  chatOption: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  selectedChatOption: {
+    borderColor: '#3B82F6',
+    backgroundColor: '#EFF6FF',
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  chatOptionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  chatOptionDescription: {
     fontSize: 12,
-    color: "#1F2937"
-  }
+    color: '#6B7280',
+    textAlign: 'center',
+  },
 });
 
 export default FlightChatRoomDetails;

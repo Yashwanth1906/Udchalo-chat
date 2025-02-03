@@ -1,15 +1,18 @@
 import express from 'express';
 import { createServer } from 'http';
-import { Server, WebSocket } from 'ws';
+import { Server, WebSocket } from 'ws'; // Removed unnecessary WebSocket import
 import { v4 as uuidv4 } from 'uuid';
 import { userRouter } from './routes/userRouter';
 import { adminRouter } from './routes/adminRouter';
-import cors from "cors";
+import cors from 'cors';
 
 const app = express();
 const server = createServer(app);
 const wss = new Server({ server });
+
 app.use(cors());
+app.use('/api/user', userRouter);
+app.use('/api/admin', adminRouter);
 
 interface Message {
     type: 'message' | 'join' | 'leave' | 'history';
@@ -25,49 +28,27 @@ interface ClientInfo {
     room: string;
 }
 
-app.get('/', (req, res) => {
-    res.send('WebSocket Chat Server');
-});
-
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
-
-
-app.use("/api/user",userRouter);
-app.use("/api/admin",adminRouter);
-
-
-
-
-
-//websocket layer
+// Store chat history per room
 const rooms = new Map<string, Message[]>();
-const clients = new Map<string, WebSocket>();
 
-wss.on('connection', (ws: WebSocket) => {
-    console.log("Hello user connected");
-    const clientId = uuidv4();
-    clients.set(clientId, ws);
-    let currentClientInfo: ClientInfo | null = null;
+// Store active clients and their room details
+const clients = new Map<WebSocket, ClientInfo>();
 
-    console.log(`New client connected: ${clientId}`);
+wss.on('connection', (ws : WebSocket) => {
+    console.log('New client connected');
 
-    ws.on('message', (data: string) => {
+    ws.on('message', (data) => {
         try {
-            const message: Message = JSON.parse(data);
-
+            const message: Message = JSON.parse(data.toString());
             switch (message.type) {
                 case 'join':
-                    handleJoin(message, ws, clientId);
+                    handleJoin(ws, message);
                     break;
                 case 'message':
-                    handleMessage(message, ws, clientId);
+                    handleMessage(ws, message);
                     break;
                 case 'leave':
-                    handleLeave(message, ws, clientId);
+                    handleLeave(ws);
                     break;
                 default:
                     console.warn('Unknown message type:', message.type);
@@ -78,86 +59,93 @@ wss.on('connection', (ws: WebSocket) => {
     });
 
     ws.on('close', () => {
-        console.log(`Client disconnected: ${clientId}`);
-        if (currentClientInfo) {
-            handleLeave({
-                type: 'leave',
-                room: currentClientInfo.room,
-                username: currentClientInfo.username
-            }, ws, clientId);
-        }
-        clients.delete(clientId);
+        handleLeave(ws);
+        console.log('Client disconnected');
     });
+});
 
-    function handleJoin(message: Message, ws: WebSocket, clientId: string) {
-        console.log(message)
-        if (!message.room || !message.username) {
-            console.error('Invalid join message');
-            return;
+function handleJoin(ws: WebSocket, message: Message) {
+    if (!message.room || !message.username) {
+        console.error('Invalid join message');
+        return;
+    }
+
+    // Store client info
+    clients.set(ws, { username: message.username, room: message.room });
+
+    // Create room if it doesn't exist
+    if (!rooms.has(message.room)) {
+        rooms.set(message.room, []);
+    }
+
+    // Send chat history to the new user
+    const historyMessage: Message = {
+        type: 'history',
+        room: message.room,
+        content: JSON.stringify(rooms.get(message.room))
+    };
+    ws.send(JSON.stringify(historyMessage));
+
+    // Broadcast join message to the room
+    const joinMessage: Message = {
+        type: 'join',
+        room: message.room,
+        username: message.username,
+        content: `${message.username} joined the room`,
+        timestamp: new Date()
+    };
+    broadcastMessage(message.room, joinMessage);
+}
+
+function handleMessage(ws: WebSocket, message: Message) {
+    const clientInfo = clients.get(ws);
+    if (!clientInfo || !message.content) return;
+
+    const fullMessage: Message = {
+        ...message,
+        username: clientInfo.username,
+        timestamp: new Date(),
+        messageId: uuidv4()
+    };
+
+    // Save message to room history
+    rooms.get(clientInfo.room)?.push(fullMessage);
+
+    // Broadcast the message
+    broadcastMessage(clientInfo.room, fullMessage);
+}
+
+function handleLeave(ws: WebSocket) {
+    const clientInfo = clients.get(ws);
+    if (!clientInfo) return;
+
+    const leaveMessage: Message = {
+        type: 'leave',
+        room: clientInfo.room,
+        username: clientInfo.username,
+        content: `${clientInfo.username} left the room`,
+        timestamp: new Date()
+    };
+
+    // Broadcast leave message and remove client
+    broadcastMessage(clientInfo.room, leaveMessage);
+    clients.delete(ws);
+}
+
+function broadcastMessage(room: string, message: Message) {
+    wss.clients.forEach((client) => {
+        const clientInfo = clients.get(client);
+        if (client.readyState === WebSocket.OPEN && clientInfo?.room === room) {
+            client.send(JSON.stringify(message));
         }
+    });
+}
 
-        currentClientInfo = {
-            username: message.username,
-            room: message.room
-        };
+app.get('/', (req, res) => {
+    res.send('WebSocket Chat Server');
+});
 
-        if (!rooms.has(message.room)) {
-            rooms.set(message.room, []);
-        }
-
-        const historyMessage: Message = {
-            type: 'history',
-            room: message.room,
-            content: JSON.stringify(rooms.get(message.room))
-        };
-
-        ws.send(JSON.stringify(historyMessage));
-        broadcastMessage(message.room, {
-            type: 'join',
-            room: message.room,
-            username: message.username,
-            content: `${message.username} joined the room`,
-            timestamp: new Date()
-        }, clientId);
-    }
-
-    function handleMessage(message: Message, ws: WebSocket, clientId: string) {
-        if (!currentClientInfo || !message.content) return;
-
-        const fullMessage: Message = {
-            ...message,
-            username: currentClientInfo.username,
-            timestamp: new Date(),
-            messageId: uuidv4()
-        };
-        rooms.get(currentClientInfo.room)?.push(fullMessage);
-        broadcastMessage(currentClientInfo.room, fullMessage, clientId);
-    }
-
-    function handleLeave(message: Message, ws: WebSocket, clientId: string) {
-        if (!currentClientInfo) return;
-
-        const leaveMessage: Message = {
-            type: 'leave',
-            room: currentClientInfo.room,
-            username: currentClientInfo.username,
-            content: `${currentClientInfo.username} left the room`,
-            timestamp: new Date()
-        };
-
-        broadcastMessage(currentClientInfo.room, leaveMessage, clientId);
-        currentClientInfo = null;
-    }
-
-    function broadcastMessage(room: string, message: Message, senderId: string) {
-        const roomMessages = rooms.get(room);
-        if (roomMessages) {
-            wss.clients.forEach(client => {
-                if (client === clients.get(senderId)) return;
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify(message));
-                }
-            });
-        }
-    }
+const PORT = 3000;
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });

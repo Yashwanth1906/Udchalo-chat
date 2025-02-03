@@ -1,54 +1,73 @@
 import { PrismaClient } from "@prisma/client";
+import { Request, Response } from "express";
 
 const prisma = new PrismaClient();
 
-
-export const getFlight = async(req,res) =>{
-    try{
-        const flights = await prisma.flight.findMany({});
-        return res.json({success:true,flights : flights});
-    } catch(e) {
-        console.log(e);
-        res.json({success:false,error:e});
+const getFlight = async (req: Request, res: Response): Promise<Response> => {
+    try {
+        const flights = await prisma.flight.findMany();
+        return res.json({ success: true, flights });
+    } catch (e) {
+        console.error(e);
+        return res.json({ success: false, error: e });
     }
+};
+
+interface CreateBookingRequest extends Request {
+    body: {
+        flightId: string;
+        userId: string;
+    };
 }
 
-export const createBooking = async(req,res) =>{
-    try{
-        const {flightId,userId} = req.body;
-        const userBooking  = await prisma.bookings.create({
-            data:{
-                flightId:flightId
+const createBooking = async (req: CreateBookingRequest, res: Response): Promise<Response> => {
+    try {
+        const { flightId, userId } = req.body;
+        const userBooking = await prisma.booking.create({
+            data: {
+                flightId : parseInt(flightId)
             }
         });
-        const user = await prisma.user.update({
-            where:{
-                id : userId
-            },data:{
-                bookingId:userBooking.id
-            }
+
+        await prisma.user.update({
+            where: { id: parseInt(userId) },
+            data: { bookingId: userBooking.id }
         });
-        return res.json({success:true,message:"Created Booking successfully"});
-    } catch(e) {
-        console.log(e);
-        return  res.json({success:false,error : e});
+
+        return res.json({ success: true, message: "Created Booking successfully" });
+    } catch (e) {
+        console.error(e);
+        return res.json({ success: false, error: e });
     }
+};
+
+interface CreateUserRequest extends Request {
+    body: {
+        name: string;
+        email: string;
+        phoneNo: string;
+        age: number;
+        gender: string;
+    };
 }
 
-export const createUser = async(req,res) =>{
-    try{
-        const {name,email,phoneNo,age,gender} = req.body;
-        const users = await prisma.user.create({
-            data:{
-                name : name,
-                email: email,
-                phoneNo:phoneNo,
-                age : age,
-                gender: gender,
+const createUser = async (req: CreateUserRequest, res: Response): Promise<Response> => {
+    try {
+        const { name, email, phoneNo, age, gender } = req.body;
+        const user = await prisma.user.create({
+            data: {
+                name :  name,
+                email : email,
+                phoneNo : phoneNo,
+                age : JSON.stringify(age),
+                gender : gender,
             }
-        })
-    } catch(e) {
-        console.log(e);
-        return res.json({success:false,error:e});
+        });
+        return res.json({ success: true, user });
+    } catch (e) {
+        console.error(e);
+        return res.json({ success: false, error: e });
     }
-}
+};
+
+export default { getFlight, createUser, createBooking };

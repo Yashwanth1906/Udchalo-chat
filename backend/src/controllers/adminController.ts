@@ -22,6 +22,12 @@ interface CreateFlightRequest extends Request {
     };
 }
 
+
+
+
+
+
+
 export const createFlight = async (req: CreateFlightRequest, res: Response): Promise<Response> => {
     try {
         const { name, no, departure, arrival } = req.body;

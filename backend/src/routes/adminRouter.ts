@@ -3,4 +3,4 @@ import { signIn } from "../controllers/adminController";
 
 export const adminRouter = Router();
 
-adminRouter.post("/signin",signIn);
+adminRouter.post("/signin", signIn);

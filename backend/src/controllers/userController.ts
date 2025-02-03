@@ -3,15 +3,16 @@ import { Request, Response } from "express";
 
 const prisma = new PrismaClient();
 
-const getFlight = async (req: Request, res: Response): Promise<Response> => {
+export const getFlight = async (req: Request, res: Response): Promise<void> => {
     try {
         const flights = await prisma.flight.findMany();
-        return res.json({ success: true, flights });
+        res.json({ success: true, flights });
     } catch (e) {
         console.error(e);
-        return res.json({ success: false, error: e });
+        res.json({ success: false, error: e });
     }
 };
+
 
 interface CreateBookingRequest extends Request {
     body: {

@@ -1,175 +1,184 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from "react-native";
 import { Send, ArrowLeft } from "lucide-react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
-import  BottomNav  from '../components/BottomNav';
+import BottomNav from '../components/BottomNav';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Message {
   id: string;
-  sender: string;
-  text: string;
+  username: string;
+  content: string;
+  room: string;
+  timestamp: string | Date;
   isUser: boolean;
-  timestamp: Date;
 }
 
-// Initial mock messages
-const INITIAL_GROUP_MESSAGES: Message[] = [
-  {
-    id: '1',
-    sender: 'Flight Crew',
-    text: "Welcome aboard! Flight DEL-BOM AI101 is scheduled for on-time departure.",
-    isUser: false,
-    timestamp: new Date(Date.now() - 3600000),
-  },
-  {
-    id: '2',
-    sender: 'John Doe',
-    text: 'Anyone interested in sharing a cab from Mumbai Airport?',
-    isUser: false,
-    timestamp: new Date(Date.now() - 1800000),
-  },
-];
+const getUsername = async () => {
+  try {
+    const username = await AsyncStorage.getItem('username');
+    if (username !== null) {
+      console.log('Retrieved username:', username);
+      return username;
+    }
+  } catch (error) {
+    console.error('Error retrieving username from AsyncStorage:', error);
+  }
+};
 
-const INITIAL_INDIVIDUAL_MESSAGES: Message[] = [
-  {
-    id: '1',
-    sender: 'Co-Passenger',
-    text: "Hi! Are you also on the DEL-BOM flight?",
-    isUser: false,
-    timestamp: new Date(Date.now() - 1800000),
-  },
-];
 
 const ChatRoom: React.FC = () => {
   const { colors } = useTheme();
-  const { flightName = "Indigo", flightId = "001", type = "individual" } = 
-    useLocalSearchParams<{ flightName?: string; flightId?: string; type?: string }>();
-  
-  const [messages, setMessages] = useState<Message[]>(
-    type === 'group' ? INITIAL_GROUP_MESSAGES : INITIAL_INDIVIDUAL_MESSAGES
-  );
+  const { flightName = "Indigo", flightId = "001", type = "individual" } = useLocalSearchParams<{ flightName?: string; flightId?: string; type?: string }>();
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
-
-  const sendMessage = () => {
-    if (inputText.trim()) {
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        sender: 'You',
-        text: inputText.trim(),
-        isUser: true,
-        timestamp: new Date()
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  useEffect(() => {
+    const func = async() =>{
+      const ws = new WebSocket('ws://192.168.1.2:3000');
+      const username = await getUsername();
+      setSocket(ws);
+      ws.onopen = () => {
+        console.log('Connected to WebSocket server');
+        ws.send(JSON.stringify({
+          type: 'join',
+          room: flightId,
+          username: username
+        }));
       };
 
-      setMessages(prev => [...prev, newMessage]);
+      // ws.onmessage = (event) => {
+      //   const message: Message = JSON.parse(event.data);
+      //   if (message.room === flightId) {
+      //     setMessages((prevMessages) => [
+      //       ...prevMessages,
+      //       {
+      //         id: message.id || `${Date.now()}`,
+      //         username: message.username || '',
+      //         content: message.content || '',
+      //         room: message.room || flightId,
+      //         isUser: message.username === username,
+      //         timestamp: new Date(message.timestamp || Date.now()),
+      //       }
+      //     ]);
+      //   }
+      // };
+      ws.onmessage = (event) => {
+        const message: Message = JSON.parse(event.data);
+        if (message.room === flightId) {
+          if (message.type === 'history') {
+            // If the message is history, prepopulate chat with all previous messages
+            const historyMessages = JSON.parse(message.content || '[]');
+            setMessages((prevMessages) => [
+              ...prevMessages,
+              ...historyMessages.map((msg: Message) => ({
+                id: msg.messageId || `${Date.now()}`,
+                username: msg.username || '',
+                content: msg.content || '',
+                room: msg.room || flightId,
+                isUser: msg.username === username,
+                timestamp: new Date(msg.timestamp || Date.now()),
+              }))
+            ]);
+          } else {
+            // Handle regular messages
+            setMessages((prevMessages) => [
+              ...prevMessages,
+              {
+                id: message.id || `${Date.now()}`,
+                username: message.username || '',
+                content: message.content || '',
+                room: message.room || flightId,
+                isUser: message.username === username,
+                timestamp: new Date(message.timestamp || Date.now()),
+              }
+            ]);
+          }
+        }
+      };
+  
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket connection closed');
+      };
+
+      return () => {
+        ws.close();
+      };
+    }
+    func();
+  }, [flightId]);
+
+  const sendMessage = () => {
+    if (socket && inputText.trim()) {
+      const message = {
+        type: 'message',
+        room: flightId,
+        content: inputText,
+      };
+      socket.send(JSON.stringify(message));
       setInputText("");
-
-      // Simulate response after a delay
-      if (Math.random() > 0.5) {
-        setTimeout(() => {
-          const responses = type === 'group' 
-            ? [
-                "Thanks for sharing!",
-                "Good to know!",
-                "I'll keep that in mind.",
-                "See you at the airport!",
-                "Safe travels everyone!"
-              ]
-            : [
-                "Yes, I am! Looking forward to the flight.",
-                "Which seat are you in?",
-                "Have you checked in yet?",
-                "Is this your first time flying this route?",
-                "Do you travel frequently on this route?"
-              ];
-
-          const responseMessage: Message = {
-            id: Date.now().toString(),
-            sender: type === 'group' ? 'Random Passenger' : 'Co-Passenger',
-            text: responses[Math.floor(Math.random() * responses.length)],
-            isUser: false,
-            timestamp: new Date()
-          };
-
-          setMessages(prev => [...prev, responseMessage]);
-        }, 1000 + Math.random() * 2000);
-      }
     }
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
-        colors={[colors.primaryDark, colors.primary]}
-        style={styles.header}
-      >
+      <LinearGradient colors={[colors.primaryDark, colors.primary]} style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity 
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <ArrowLeft color="white" size={24} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>
-              {type === 'group' ? 'Flight Group' : 'Individual Chat'}
-            </Text>
+            <Text style={styles.headerTitle}>{type === 'group' ? 'Flight Group' : 'Individual Chat'}</Text>
             <Text style={styles.headerSubtitle}>{flightName} • {flightId}</Text>
           </View>
         </View>
       </LinearGradient>
 
-      <ScrollView 
-        style={styles.chatContainer}
-        contentContainerStyle={styles.chatContent}
-      >
-        {messages.map(message => (
+      <ScrollView style={styles.chatContainer} contentContainerStyle={styles.chatContent}>
+        {messages.map((message) => (
           <View
             key={message.id}
-            style={[
-              styles.messageContainer,
-              message.isUser ? styles.userMessage : styles.otherMessage,
-            ]}
+            style={[styles.messageContainer, message.isUser ? styles.userMessage : styles.otherMessage]}
           >
-            {!message.isUser && (
-              <Text style={styles.sender}>{message.sender}</Text>
+            {message.isUser ? (
+              <>
+                <Text style={styles.username}>{message.username}</Text>
+                <Text style={[styles.messageText, message.isUser && styles.userMessageText]}>{message.content}</Text>
+                <Text style={[styles.timestamp, message.isUser && styles.userTimestamp]}>
+                  {message.timestamp.toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.sender}>{message.username}</Text>
+                <Text style={styles.messageText}>{message.content}</Text>
+                <Text style={styles.timestamp}>
+                  {message.timestamp.toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </>
             )}
-            <Text style={[
-              styles.messageText,
-              message.isUser && styles.userMessageText
-            ]}>
-              {message.text}
-            </Text>
-            <Text style={[
-              styles.timestamp,
-              message.isUser && styles.userTimestamp
-            ]}>
-              {message.timestamp.toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
-            </Text>
           </View>
         ))}
       </ScrollView>
 
       <View style={[styles.inputContainer, { backgroundColor: colors.card }]}>
         <TextInput
-          style={[styles.input, { 
-            backgroundColor: colors.background,
-            color: colors.text
-          }]}
+          style={[styles.input, { backgroundColor: colors.background, color: colors.text }]}
           value={inputText}
           onChangeText={setInputText}
           placeholder="Type a message..."
           placeholderTextColor={colors.textSecondary}
           multiline
         />
-        <TouchableOpacity 
-          style={[styles.sendButton, { 
-            backgroundColor: inputText.trim() ? colors.primary : colors.textSecondary 
-          }]}
+        <TouchableOpacity
+          style={[styles.sendButton, { backgroundColor: inputText.trim() ? colors.primary : colors.textSecondary }]}
           onPress={sendMessage}
           disabled={!inputText.trim()}
         >
@@ -242,6 +251,13 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     backgroundColor: "white",
     borderTopLeftRadius: 4,
+  },
+  username: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: "white",
+    marginBottom: 4,
+    textAlign: 'right',
   },
   sender: {
     fontSize: 12,

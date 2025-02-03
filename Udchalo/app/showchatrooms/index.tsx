@@ -4,11 +4,6 @@ import { Bell, Search, MessageCircle, Home, Calendar, DollarSign, Menu } from "l
 import { router } from "expo-router";
 import axios from "axios";
 const FlightChatRooms = () => {
-
-  // useEffect(()=>{
-    
-  // })
-
   const flightRooms = [
     { name: "Indigo 6E123", id: "1" },
     { name: "Air India AI456", id: "2" },

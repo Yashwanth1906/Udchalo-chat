@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, Image } from "react-native";
-import { Bell, Search, MessageCircle, Home, Calendar, DollarSign, Menu, ArrowLeft, Users } from "lucide-react-native";
+import { ArrowLeft, MessageCircle, Users } from "lucide-react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 type Passenger = {
   id: number;
   name: string;
@@ -20,6 +20,11 @@ const FlightChatRoomDetails: React.FC = () => {
   const [selectedPassenger, setSelectedPassenger] = useState<number | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [chatType, setChatType] = useState<ChatType>(null);
+  const [username, setUsername] = useState<string | null>(null);
+
+  const mockUsernames = [
+    "Flaming Cheetah", "Swift Eagle", "Sly Fox", "Bold Lion", "Graceful Swan", "Mighty Tiger"
+  ];
 
   const fetchBookingDetails = () => {
     // Mock API response
@@ -42,6 +47,18 @@ const FlightChatRoomDetails: React.FC = () => {
     if (chatType === 'individual') {
       router.push("/chatroom?type=individual");
     }
+  };
+  const storeUsername = async (selectedUsername : string) => {
+    try {
+      await AsyncStorage.setItem('username', selectedUsername);
+    } catch (error) {
+      console.error('Error saving username to AsyncStorage:', error);
+    }
+  };
+
+  const handleUsernameSelection = (selectedUsername: string) => {
+    setUsername(selectedUsername);
+    storeUsername(selectedUsername)
   };
 
   return (
@@ -134,17 +151,29 @@ const FlightChatRoomDetails: React.FC = () => {
                     <Text style={styles.passengerSubInfo}>{passenger.age} years • {passenger.gender}</Text>
                   </View>
                 </View>
-                <View style={[
-                  styles.selectionIndicator,
-                  selectedPassenger === passenger.id && styles.selectedIndicator
-                ]} />
+                <View style={[styles.selectionIndicator, selectedPassenger === passenger.id && styles.selectedIndicator]} />
               </TouchableOpacity>
             ))}
           </View>
         )}
+
+        <View style={styles.usernameSelectionCard}>
+          <Text style={styles.cardTitle}>Select Username</Text>
+          <View style={styles.usernameList}>
+            {mockUsernames.map((name, index) => (
+              <TouchableOpacity 
+                key={index} 
+                style={styles.usernameOption} 
+                onPress={() => handleUsernameSelection(name)}
+              >
+                <Text style={styles.usernameOptionText}>{name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
       </ScrollView>
 
-      {selectedPassenger && chatType === 'individual' && (
+      {username && selectedPassenger && chatType === 'individual' && (
         <TouchableOpacity 
           style={styles.joinButton} 
           onPress={handleJoinChat}
@@ -157,6 +186,37 @@ const FlightChatRoomDetails: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  // Other styles...
+  usernameSelectionCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+  },
+  usernameList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  usernameOption: {
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+  },
+  usernameOptionText: {
+    color: '#3B82F6',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
     backgroundColor: "#F8FAFC",

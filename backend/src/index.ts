@@ -69,24 +69,16 @@ function handleJoin(ws: WebSocket, message: Message) {
         console.error('Invalid join message');
         return;
     }
-
-    // Store client info
     clients.set(ws, { username: message.username, room: message.room });
-
-    // Create room if it doesn't exist
     if (!rooms.has(message.room)) {
         rooms.set(message.room, []);
     }
-
-    // Send chat history to the new user
     const historyMessage: Message = {
         type: 'history',
         room: message.room,
         content: JSON.stringify(rooms.get(message.room))
     };
     ws.send(JSON.stringify(historyMessage));
-
-    // Broadcast join message to the room
     const joinMessage: Message = {
         type: 'join',
         room: message.room,
@@ -102,8 +94,10 @@ function handleMessage(ws: WebSocket, message: Message) {
     if (!clientInfo || !message.content) return;
 
     const fullMessage: Message = {
-        ...message,
+        type: 'message',
+        room: clientInfo.room,
         username: clientInfo.username,
+        content: message.content,
         timestamp: new Date(),
         messageId: uuidv4()
     };

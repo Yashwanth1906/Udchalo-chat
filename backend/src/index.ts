@@ -9,7 +9,7 @@ import cors from 'cors';
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
-
+app.use(express.json());
 app.use(cors());
 app.use('/api/user', userRouter);
 app.use('/api/admin', adminRouter);

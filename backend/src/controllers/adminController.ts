@@ -21,9 +21,9 @@ interface CreateFlightRequest extends Request {
         arrival: Date;
     };
 }
-
-export const createFlight = async (req: CreateFlightRequest, res: Response): Promise<Response> => {
+export const createFlight = async (req: CreateFlightRequest, res: Response): Promise<void> => {
     try {
+        console.log(req.body);
         const { name, no, departure, arrival } = req.body;
         const flight = await prisma.flight.create({
             data: {
@@ -33,9 +33,9 @@ export const createFlight = async (req: CreateFlightRequest, res: Response): Pro
                 arrivalDate: arrival
             }
         });
-        return res.json({ success: true, flight: flight });
+        res.json({ success: true, flight: flight });
     } catch (e) {
         console.error(e);
-        return res.json({ success: false, error: e });
+        res.json({ success: false, error: e });
     }
 };

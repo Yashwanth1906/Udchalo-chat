@@ -1,6 +1,6 @@
 import express from 'express';
 import { createServer } from 'http';
-import { Server, WebSocket } from 'ws'; // Removed unnecessary WebSocket import
+import { WebSocketServer, WebSocket } from 'ws'; // Removed unnecessary WebSocket import
 import { v4 as uuidv4 } from 'uuid';
 import { userRouter } from './routes/userRouter';
 import { adminRouter } from './routes/adminRouter';
@@ -8,7 +8,7 @@ import cors from 'cors';
 
 const app = express();
 const server = createServer(app);
-const wss = new Server({ server });
+const wss = new WebSocketServer({ server });
 
 app.use(cors());
 app.use('/api/user', userRouter);

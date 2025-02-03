@@ -1,16 +1,17 @@
 import { PrismaClient } from "@prisma/client";
-import { Request, Response } from "express"; // Import types for Express
+import { Request, Response,NextFunction } from "express"; // Import types for Express
 
 const prisma = new PrismaClient();
 
-export const signIn = async (req: Request, res: Response): Promise<Response> => {
+export const signIn = async (req: Request, res: Response,next:NextFunction): Promise<void> => {
     try {
-        return res.json({ success: true, message: "Signed in" });
+         res.status(200).json({ success: true, message: "Signed in" });
     } catch (e) {
         console.error(e);
-        return res.json({ success: false, error: e });
+         next(e);
     }
 };
+
 
 interface CreateFlightRequest extends Request {
     body: {

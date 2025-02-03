@@ -2,10 +2,14 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
+import { userRouter } from './routes/userRouter';
+import { adminRouter } from './routes/adminRouter';
+import cors from "cors";
 
 const app = express();
 const server = createServer(app);
 const wss = new Server({ server });
+app.use(cors());
 
 interface Message {
     type: 'message' | 'join' | 'leave' | 'history';
@@ -21,12 +25,27 @@ interface ClientInfo {
     room: string;
 }
 
-const rooms = new Map<string, Message[]>();
-const clients = new Map<string, WebSocket>();
-
 app.get('/', (req, res) => {
     res.send('WebSocket Chat Server');
 });
+
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
+
+
+app.use("/api/user",userRouter);
+app.use("/api/admin",adminRouter);
+
+
+
+
+
+//websocket layer
+const rooms = new Map<string, Message[]>();
+const clients = new Map<string, WebSocket>();
 
 wss.on('connection', (ws: WebSocket) => {
     console.log("Hello user connected");
@@ -141,9 +160,4 @@ wss.on('connection', (ws: WebSocket) => {
             });
         }
     }
-});
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
 });

@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Flight {
+  id            Int       @id @default(autoincrement())
+  name          String
+  flightNo      String    @unique
+  departureDate DateTime
+  arrivalDate   DateTime
+  bookings      Booking[]
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phoneNo   String
+  age       String
+  gender    String
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id]) // Corrected relation
+}
+
+model Booking {
+  id       String  @id @default(uuid()) // UUID for unique booking IDs
+  flightId Int     // Foreign key for Flight
+  flight   Flight  @relation(fields: [flightId], references: [id])
+  users    User[]  // One-to-Many relationship with User
+}

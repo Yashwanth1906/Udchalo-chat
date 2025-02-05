@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws'; // Removed unnecessary WebSocke
 import { v4 as uuidv4 } from 'uuid';
 import { userRouter } from './routes/userRouter';
 import { adminRouter } from './routes/adminRouter';
+import redis from './redisClient';
 import cors from 'cors';
 
 const app = express();
@@ -28,10 +29,7 @@ interface ClientInfo {
     room: string;
 }
 
-// Store chat history per room
 const rooms = new Map<string, Message[]>();
-
-// Store active clients and their room details
 const clients = new Map<WebSocket, ClientInfo>();
 
 wss.on('connection', (ws : WebSocket) => {
@@ -101,12 +99,9 @@ function handleMessage(ws: WebSocket, message: Message) {
         timestamp: new Date(),
         messageId: uuidv4()
     };
-
-    // Save message to room history
     rooms.get(clientInfo.room)?.push(fullMessage);
-
-    // Broadcast the message
     broadcastMessage(clientInfo.room, fullMessage);
+    redis.lpush(`chatQueue:${clientInfo.room}`, JSON.stringify(fullMessage));
 }
 
 function handleLeave(ws: WebSocket) {
@@ -120,8 +115,6 @@ function handleLeave(ws: WebSocket) {
         content: `${clientInfo.username} left the room`,
         timestamp: new Date()
     };
-
-    // Broadcast leave message and remove client
     broadcastMessage(clientInfo.room, leaveMessage);
     clients.delete(ws);
 }

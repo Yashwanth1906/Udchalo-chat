@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import BottomNav from '../components/BottomNav';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BACKEND_URL } from "@/config";
 
 interface Message {
   id: string;
@@ -14,6 +15,7 @@ interface Message {
   room: string;
   timestamp: string | Date;
   isUser: boolean;
+  type : string;
 }
 
 const getUsername = async () => {
@@ -37,7 +39,7 @@ const ChatRoom: React.FC = () => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   useEffect(() => {
     const func = async() =>{
-      const ws = new WebSocket('ws://192.168.1.2:3000');
+      const ws = new WebSocket(BACKEND_URL);
       const username = await getUsername();
       setSocket(ws);
       ws.onopen = () => {
@@ -48,23 +50,6 @@ const ChatRoom: React.FC = () => {
           username: username
         }));
       };
-
-      // ws.onmessage = (event) => {
-      //   const message: Message = JSON.parse(event.data);
-      //   if (message.room === flightId) {
-      //     setMessages((prevMessages) => [
-      //       ...prevMessages,
-      //       {
-      //         id: message.id || `${Date.now()}`,
-      //         username: message.username || '',
-      //         content: message.content || '',
-      //         room: message.room || flightId,
-      //         isUser: message.username === username,
-      //         timestamp: new Date(message.timestamp || Date.now()),
-      //       }
-      //     ]);
-      //   }
-      // };
       ws.onmessage = (event) => {
         const message: Message = JSON.parse(event.data);
         if (message.room === flightId) {
@@ -74,7 +59,7 @@ const ChatRoom: React.FC = () => {
             setMessages((prevMessages) => [
               ...prevMessages,
               ...historyMessages.map((msg: Message) => ({
-                id: msg.messageId || `${Date.now()}`,
+                id: msg.id || `${Date.now()}`,
                 username: msg.username || '',
                 content: msg.content || '',
                 room: msg.room || flightId,
@@ -93,6 +78,7 @@ const ChatRoom: React.FC = () => {
                 room: message.room || flightId,
                 isUser: message.username === username,
                 timestamp: new Date(message.timestamp || Date.now()),
+                type : message.type
               }
             ]);
           }

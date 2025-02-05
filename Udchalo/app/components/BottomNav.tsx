@@ -1,21 +1,20 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Home, Plane, MessageCircle, ShoppingBag } from 'lucide-react-native';
-import { usePathname, router } from 'expo-router';
+import { router, usePathname, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../context/ThemeContext';
 
 const BottomNav = () => {
   const pathname = usePathname();
   const { colors } = useTheme();
-
-  const NAV_ITEMS = [
+  const NAV_ITEMS: { icon: any; title: string; route: '/' | '/flights' | '/showchatrooms' | '/bazaar' }[] = [
     { icon: Home, title: 'Home', route: '/' },
     { icon: Plane, title: 'Flights', route: '/flights' },
     { icon: MessageCircle, title: 'Chat', route: '/showchatrooms' },
     { icon: ShoppingBag, title: 'Bazaar', route: '/bazaar' },
   ];
-
+  
   return (
     <BlurView intensity={90} style={styles.bottomNav}>
       {NAV_ITEMS.map((item) => (
@@ -44,7 +43,9 @@ const BottomNav = () => {
     </BlurView>
   );
 };
+
 export default BottomNav;
+
 const styles = StyleSheet.create({
   bottomNav: {
     flexDirection: 'row',
@@ -69,4 +70,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: '500',
   },
-}); 
+});

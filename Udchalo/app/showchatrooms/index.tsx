@@ -1,16 +1,35 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from "react-native";
 import { Bell, Search, MessageCircle, Home, Calendar, DollarSign, Menu } from "lucide-react-native";
 import { router } from "expo-router";
 import axios from "axios";
-const FlightChatRooms = () => {
-  const flightRooms = [
-    { name: "Indigo 6E123", id: "1" },
-    { name: "Air India AI456", id: "2" },
-    { name: "SpiceJet SG789", id: "3" },
-    { name: "Vistara UK101", id: "4" }
-  ];
+import { BACKEND_URL } from "@/config";
 
+interface Flight {
+  name : string,
+  flightNo : string,
+  departureDate : string,
+  arrivalDate : string,
+}
+
+const FlightChatRooms = () => {
+  const [flightRooms,setFlightRooms] = useState<Flight[] | null>();
+  useEffect(()=>{
+    const func = async() =>{
+      await axios.get(`${BACKEND_URL}/api/user/getflights`)
+      .then((res)=>{
+        if(res.data.success === true) {
+          setFlightRooms(res.data.flights);
+        } else {
+          alert("No flights available");
+          router.push("/");
+        }
+      }).catch((e)=>{
+        alert(e);
+      })
+    }
+    func();
+  },[])
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -21,8 +40,6 @@ const FlightChatRooms = () => {
           <Search color="white" size={20} />
         </View>
       </View>
-
-      {/* Content */}
       <ScrollView style={styles.content}>
         <TextInput
           style={styles.searchBar}
@@ -30,9 +47,10 @@ const FlightChatRooms = () => {
           placeholderTextColor="#6B7280"
         />
 
-        {flightRooms.map((room) => (
-          <View key={room.id} style={styles.chatRoom}>
+        {flightRooms?.map((room) => (
+          <View key={room.flightNo} style={styles.chatRoom}>
             <Text style={styles.roomName}>{room.name}</Text>
+            <Text style={styles.roomNo}>{room.flightNo}</Text>
             <TouchableOpacity style={styles.joinButton} onPress={()=>router.push("/showpassengers")}>
               <Text style={styles.joinButtonText}>Join</Text>
             </TouchableOpacity>
@@ -40,7 +58,6 @@ const FlightChatRooms = () => {
         ))}
       </ScrollView>
 
-      {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
         <NavItem icon={Home} title="Home" />
         <NavItem icon={Calendar} title="Bookings" />
@@ -60,6 +77,11 @@ const NavItem = ({ icon: Icon, title }) => (
 );
 
 const styles = StyleSheet.create({
+  roomNo : {
+    marginLeft: -170,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
   container: {
     flex: 1,
     backgroundColor: "white",

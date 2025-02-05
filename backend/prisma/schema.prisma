@@ -14,9 +14,37 @@ model Flight {
   departureDate DateTime
   arrivalDate   DateTime
   bookings      Booking[]
+  flightRooms FlightRooms[]
 }
 
+model FlightRooms {
+  id Int @id @default(autoincrement())
+  flightId String
+  flight Flight @relation(fields: [flightId],references: [flightNo])
+  name String
+  roomNo String
+  messages Messages[]
+}
+
+model Messages {
+  id String @id @default(uuid())
+  type messageType
+  flightRoomId Int
+  flightRoom FlightRooms @relation(fields: [flightRoomId],references: [id])
+  userId Int
+  user User @relation(fields: [userId],references: [id])
+  content String
+  timestamp DateTime @default(now())
+}
+
+enum messageType {
+  message
+  announcement
+}
+
+
 model User {
+  messsage Messages[]
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
@@ -24,12 +52,12 @@ model User {
   age       String
   gender    String
   bookingId String?
-  booking   Booking? @relation(fields: [bookingId], references: [id]) // Corrected relation
+  booking   Booking? @relation(fields: [bookingId], references: [id])
 }
 
 model Booking {
-  id       String  @id @default(uuid()) // UUID for unique booking IDs
-  flightId Int     // Foreign key for Flight
+  id       String  @id @default(uuid())
+  flightId Int
   flight   Flight  @relation(fields: [flightId], references: [id])
-  users    User[]  // One-to-Many relationship with User
+  users    User[]
 }

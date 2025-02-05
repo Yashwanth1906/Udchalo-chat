@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "NodeNext",  // Ensure using NodeNext for ESM
+    "moduleResolution": "NodeNext",
+    "target": "ESNext",    // Suitable for modern JavaScript features
+    "strict": true,        // Enforce strict typing
+    "esModuleInterop": true,
+    "allowJs": true,       // Allow JavaScript files in your project
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*", "../../packages/db/redis/redisClient.ts"],  // Make sure it includes all .ts files in src
+  "exclude": ["node_modules"]
+}

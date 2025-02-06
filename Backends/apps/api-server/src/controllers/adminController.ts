@@ -22,7 +22,6 @@ interface CreateFlightRequest extends Request {
 }
 export const createFlight = async (req: CreateFlightRequest, res: Response): Promise<void> => {
     try {
-        console.log(req.body);
         const { name, flightNo, departureDate, arrivalDate } = req.body;
         const flight = await prisma.flight.create({
             data: {
@@ -53,5 +52,38 @@ export const createFlightRoom = async(req : Request,res : Response,next:NextFunc
     } catch(e) {
         console.log(e);
         res.json({success:false,message:e})
+    }
+}
+interface bookings extends Request{
+    body:{
+        name:string
+    }
+}
+export const getbookings =async (req:bookings,res:Response)=>{
+    try {
+        const flightNo= req.params.flightNo;
+        if (flightNo){
+            const bookings = await prisma.booking.findMany(
+                {
+                    where:{
+                        flightId:flightNo
+                    }
+                    ,include:{users:true}
+                }
+            );
+            if (!bookings){
+                res.json({success:"false",message:"No bookings found"});
+            }
+            res.json({success:"true",message:bookings});
+            return
+        }
+        const bookings = await prisma.booking.findMany(
+            {include:{users:true}}
+        );
+        res.json({success:"true",message:bookings});
+        return
+    } catch (e) {
+        console.error(e);
+        return
     }
 }

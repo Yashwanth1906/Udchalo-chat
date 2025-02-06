@@ -1,3 +1,5 @@
+import  jwt  from 'jsonwebtoken';
+import  dotenv  from 'dotenv';
 import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
@@ -14,7 +16,13 @@ app.use(express.json());
 app.use(cors());
 app.use('/api/user', userRouter);
 app.use('/api/admin', adminRouter);
-
+dotenv.config()
+const JWT_SECRET="Yashdon"
+export function createtoken(id:number)
+{
+    const token=jwt.sign({id},JWT_SECRET);
+    return token
+}
 interface Message {
     type: 'message' | 'join' | 'leave' | 'history';
     room: string;

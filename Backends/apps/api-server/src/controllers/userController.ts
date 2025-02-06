@@ -1,10 +1,30 @@
+import dotenv from 'dotenv';
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { Flight } from './../../../../node_modules/.prisma/client/index.d';
+
 import { Request, Response,NextFunction } from "express";
 import prisma from "../../../../packages/db/src/index";
-import bcrypt from "bcrypt";
+import { createtoken } from '..';
 
+dotenv.config()
 export const getFlight = async (req: Request, res: Response): Promise<void> => {
     console.log("Running");
     try {
+        const id = req.params.id;
+        if (id){
+            const flight = await prisma.flight.findUnique({
+                where: {
+                    flightNo: id
+                }
+            });
+            if (!flight){
+                res.json({ success: false, message: "Flight not found" });
+                return;
+            }
+            res.json({ success: true, flight });
+            return;
+        }
         const flights = await prisma.flight.findMany();
         res.json({ success: true, flights });
     } catch (e) {
@@ -12,6 +32,14 @@ export const getFlight = async (req: Request, res: Response): Promise<void> => {
         res.json({ success: false, error: e });
     }
 };
+
+
+interface CreateBookingRequest extends Request {
+    body: {
+        flightId: string;
+        userId: string;
+    };
+}
 
 export const createUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -29,9 +57,13 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
             }
         });
 
-        res.json({ success: true, message: "Successfully added" });
+        res.json({ success: true, message: "Created User successfully" });
+        return;
+        
     } catch (e) {
         console.error(e);
+        res.json({ success: false, error: e });
+        return;
         res.status(500).json({ success: false, message: "User creation failed", error: e });
     }
 };
@@ -39,7 +71,7 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
 
 export const createBooking = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { flightId, userId } = req.body;
+        const { flightId, email } = req.body;
 
         const [booking, userMapping] = await prisma.$transaction([
             prisma.booking.create({
@@ -49,7 +81,7 @@ export const createBooking = async (req: Request, res: Response, next: NextFunct
             }),
             prisma.user.update({
                 where: {
-                    id: userId
+                    email: email
                 },
                 data: {
                     bookingId: undefined
@@ -57,7 +89,7 @@ export const createBooking = async (req: Request, res: Response, next: NextFunct
             })
         ]);
         await prisma.user.update({
-            where: { id: userId },
+            where: { email: email },
             data: { bookingId: booking.id }
         });
 
@@ -69,5 +101,43 @@ export const createBooking = async (req: Request, res: Response, next: NextFunct
     }
 };
 
+interface loginPass extends Request {
+    body:{
+        email:string,
+        password:string
+    }
+}
 
-export default { getFlight};
+export const loginuser= async (req:loginPass,res:Response):Promise<void>=>{
+    const {email,password}=req.body
+
+    const User= await prisma.user.findUnique(
+        {where:{email:email}}
+    )
+    if(!User){
+        res.json({success:false,message:"no User found"})
+        return 
+    }
+    const passcomp= await bcrypt.compare(password,User.password)
+    if (!passcomp){
+        res.json({success:false,message:"password mismatch"})
+        return
+    }
+    const token=createtoken(User.id)
+    res.json({success:true,token:token})
+    return 
+}
+
+
+interface loginPass extends Request {
+    body:{
+        email:string,
+        password:string
+    }
+}
+
+
+
+
+
+export default { getFlight, createUser, createBooking};

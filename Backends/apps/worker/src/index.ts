@@ -18,7 +18,7 @@ async function main(){
                 const data = await prisma.messages.create({
                     data:{
                         type : message.type as MessageType,
-                        flightRoomId: message.room,
+                        flightRoomId: Number(message.room),
                         userId : message.userId,
                         content : message.content,
                         timestamp : message.timestamp

@@ -1,7 +1,9 @@
-import { Request, Response } from "express";
+import { Request, Response,NextFunction } from "express";
 import prisma from "../../../../packages/db/src/index";
+import bcrypt from "bcrypt";
 
 export const getFlight = async (req: Request, res: Response): Promise<void> => {
+    console.log("Running");
     try {
         const flights = await prisma.flight.findMany();
         res.json({ success: true, flights });
@@ -11,62 +13,61 @@ export const getFlight = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-
-interface CreateBookingRequest extends Request {
-    body: {
-        flightId: string;
-        userId: string;
-    };
-}
-
-const createBooking = async (req: CreateBookingRequest, res: Response): Promise<Response> => {
+export const createUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { flightId, userId } = req.body;
-        const userBooking = await prisma.booking.create({
-            data: {
-                flightId : parseInt(flightId)
-            }
-        });
-
-        await prisma.user.update({
-            where: { id: parseInt(userId) },
-            data: { bookingId: userBooking.id }
-        });
-
-        return res.json({ success: true, message: "Created Booking successfully" });
-    } catch (e) {
-        console.error(e);
-        return res.json({ success: false, error: e });
-    }
-};
-
-interface CreateUserRequest extends Request {
-    body: {
-        name: string;
-        email: string;
-        phoneNo: string;
-        age: number;
-        gender: string;
-    };
-}
-
-const createUser = async (req: CreateUserRequest, res: Response): Promise<Response> => {
-    try {
-        const { name, email, phoneNo, age, gender } = req.body;
+        const { name, email, phoneNo, age, gender, password } = req.body;
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
         const user = await prisma.user.create({
             data: {
-                name :  name,
-                email : email,
-                phoneNo : phoneNo,
-                age : JSON.stringify(age),
-                gender : gender,
+                name,
+                email,
+                phoneNo,
+                age,
+                gender,
+                password : hashedPassword
             }
         });
-        return res.json({ success: true, user });
+
+        res.json({ success: true, message: "Successfully added" });
     } catch (e) {
         console.error(e);
-        return res.json({ success: false, error: e });
+        res.status(500).json({ success: false, message: "User creation failed", error: e });
     }
 };
 
-export default { getFlight, createUser, createBooking };
+
+export const createBooking = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const { flightId, userId } = req.body;
+
+        const [booking, userMapping] = await prisma.$transaction([
+            prisma.booking.create({
+                data: {
+                    flightId: flightId
+                }
+            }),
+            prisma.user.update({
+                where: {
+                    id: userId
+                },
+                data: {
+                    bookingId: undefined
+                }
+            })
+        ]);
+        await prisma.user.update({
+            where: { id: userId },
+            data: { bookingId: booking.id }
+        });
+
+        res.json({ success: true, message: "Successfully booked and mapped" });
+
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ success: false, message: "Booking failed", error: e });
+    }
+};
+
+
+export default { getFlight};

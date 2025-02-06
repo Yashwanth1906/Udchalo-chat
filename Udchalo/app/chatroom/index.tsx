@@ -12,7 +12,7 @@ interface Message {
   id: string;
   username: string;
   content: string;
-  room: string;
+  room: number;
   timestamp: string | Date;
   isUser: boolean;
   type : string;
@@ -32,8 +32,9 @@ const getUsername = async () => {
 
 
 const ChatRoom: React.FC = () => {
+  const [user,setUser] = useState<number | null>(1);
   const { colors } = useTheme();
-  const { flightName = "Indigo", flightId = "001", type = "individual" } = useLocalSearchParams<{ flightName?: string; flightId?: string; type?: string }>();
+  const { flightName = "Indigo", flightId = 1, type = "individual" } = useLocalSearchParams<{ flightName?: string; flightId?: string; type?: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -105,6 +106,7 @@ const ChatRoom: React.FC = () => {
     if (socket && inputText.trim()) {
       const message = {
         type: 'message',
+        userId : user,
         room: flightId,
         content: inputText,
       };

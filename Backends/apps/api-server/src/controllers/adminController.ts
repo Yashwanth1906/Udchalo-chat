@@ -38,3 +38,20 @@ export const createFlight = async (req: CreateFlightRequest, res: Response): Pro
         res.json({ success: false, error: e });
     }
 };
+
+
+export const createFlightRoom = async(req : Request,res : Response,next:NextFunction): Promise<void> =>{
+    try{
+        const {flightId,name} = req.body;
+        const room = await prisma.flightRooms.create({
+            data:{
+                flightId : flightId,
+                name : name
+            }
+        })
+        res.json({success:true,message:"Succesfully added"});
+    } catch(e) {
+        console.log(e);
+        res.json({success:false,message:e})
+    }
+}

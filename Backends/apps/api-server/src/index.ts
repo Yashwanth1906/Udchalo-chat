@@ -18,6 +18,7 @@ app.use('/api/admin', adminRouter);
 interface Message {
     type: 'message' | 'join' | 'leave' | 'history';
     room: string;
+    userId : number;
     username?: string;
     content?: string;
     timestamp?: Date;
@@ -46,7 +47,7 @@ wss.on('connection', (ws : WebSocket) => {
                     handleMessage(ws, message);
                     break;
                 case 'leave':
-                    handleLeave(ws);
+                    handleLeave(ws,message);
                     break;
                 default:
                     console.warn('Unknown message type:', message.type);
@@ -74,11 +75,13 @@ function handleJoin(ws: WebSocket, message: Message) {
     const historyMessage: Message = {
         type: 'history',
         room: message.room,
+        userId : message.userId,
         content: JSON.stringify(rooms.get(message.room))
     };
     ws.send(JSON.stringify(historyMessage));
     const joinMessage: Message = {
         type: 'join',
+        userId : message.userId,
         room: message.room,
         username: message.username,
         content: `${message.username} joined the room`,
@@ -93,6 +96,7 @@ function handleMessage(ws: WebSocket, message: Message) {
 
     const fullMessage: Message = {
         type: 'message',
+        userId : message.userId,
         room: clientInfo.room,
         username: clientInfo.username,
         content: message.content,
@@ -101,17 +105,19 @@ function handleMessage(ws: WebSocket, message: Message) {
     };
     rooms.get(clientInfo.room)?.push(fullMessage);
     broadcastMessage(clientInfo.room, fullMessage);
+    console.log(fullMessage);
     redis.lPush("message", JSON.stringify(fullMessage))
         .then(() => console.log("Message successfully pushed to Redis"))
         .catch(err => console.error("Redis lPush failed:", err));
 }
 
-function handleLeave(ws: WebSocket) {
+function handleLeave(ws: WebSocket,message? : Message) {
     const clientInfo = clients.get(ws);
     if (!clientInfo) return;
 
     const leaveMessage: Message = {
         type: 'leave',
+        userId : message?.userId ||  -1,
         room: clientInfo.room,
         username: clientInfo.username,
         content: `${clientInfo.username} left the room`,

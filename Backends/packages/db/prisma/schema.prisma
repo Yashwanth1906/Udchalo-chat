@@ -22,7 +22,6 @@ model FlightRooms {
   flightId String
   flight Flight @relation(fields: [flightId],references: [flightNo])
   name String
-  roomNo String
   messages Messages[]
 }
 
@@ -49,7 +48,8 @@ model User {
   name      String
   email     String   @unique
   phoneNo   String
-  age       String
+  age       Int
+  password String @default("summa")
   gender    String
   bookingId String?
   booking   Booking? @relation(fields: [bookingId], references: [id])
@@ -57,7 +57,7 @@ model User {
 
 model Booking {
   id       String  @id @default(uuid())
-  flightId Int
-  flight   Flight  @relation(fields: [flightId], references: [id])
+  flightId String
+  flight   Flight  @relation(fields: [flightId], references: [flightNo])
   users    User[]
 }

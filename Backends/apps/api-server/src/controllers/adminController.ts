@@ -55,3 +55,20 @@ export const createFlightRoom = async(req : Request,res : Response,next:NextFunc
         res.json({success:false,message:e})
     }
 }
+
+export const getFligtRooms = async(req : Request,res : Response,next:NextFunction): Promise<void> =>{
+    try{
+        const {flightId} = req.body;
+        console.log(flightId);
+        const rooms = await prisma.flightRooms.findMany({
+            where:{
+                flightId : flightId
+            }
+        })
+        res.json({success:true,rooms});
+    }catch(e) {
+        console.log(e);
+        res.json({success:false,message:e});
+    }
+
+}

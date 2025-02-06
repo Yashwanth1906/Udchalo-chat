@@ -51,7 +51,7 @@ const FlightChatRooms = () => {
           <View key={room.flightNo} style={styles.chatRoom}>
             <Text style={styles.roomName}>{room.name}</Text>
             <Text style={styles.roomNo}>{room.flightNo}</Text>
-            <TouchableOpacity style={styles.joinButton} onPress={()=>router.push("/showpassengers")}>
+            <TouchableOpacity style={styles.joinButton} onPress={()=>router.push(`/showpassengers?flightId=${room.flightNo}&username=${room.name}`)}>
               <Text style={styles.joinButtonText}>Join</Text>
             </TouchableOpacity>
           </View>

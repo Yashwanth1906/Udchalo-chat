@@ -34,7 +34,8 @@ const getUsername = async () => {
 const ChatRoom: React.FC = () => {
   const [user,setUser] = useState<number | null>(1);
   const { colors } = useTheme();
-  const { flightName = "Indigo", flightId = 1, type = "individual" } = useLocalSearchParams<{ flightName?: string; flightId?: string; type?: string }>();
+  const { roomName = "Announcemnet", roomId = 1} = useLocalSearchParams<{ roomName?: string; roomId?: number}>();
+  console.log("Room Id : " + roomId);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -47,13 +48,13 @@ const ChatRoom: React.FC = () => {
         console.log('Connected to WebSocket server');
         ws.send(JSON.stringify({
           type: 'join',
-          room: flightId,
+          room: roomId,
           username: username
         }));
       };
       ws.onmessage = (event) => {
         const message: Message = JSON.parse(event.data);
-        if (message.room === flightId) {
+        if (message.room === roomId) {
           if (message.type === 'history') {
             // If the message is history, prepopulate chat with all previous messages
             const historyMessages = JSON.parse(message.content || '[]');
@@ -63,7 +64,7 @@ const ChatRoom: React.FC = () => {
                 id: msg.id || `${Date.now()}`,
                 username: msg.username || '',
                 content: msg.content || '',
-                room: msg.room || flightId,
+                room: msg.room || roomId,
                 isUser: msg.username === username,
                 timestamp: new Date(msg.timestamp || Date.now()),
               }))
@@ -76,7 +77,7 @@ const ChatRoom: React.FC = () => {
                 id: message.id || `${Date.now()}`,
                 username: message.username || '',
                 content: message.content || '',
-                room: message.room || flightId,
+                room: message.room || roomId,
                 isUser: message.username === username,
                 timestamp: new Date(message.timestamp || Date.now()),
                 type : message.type
@@ -100,14 +101,14 @@ const ChatRoom: React.FC = () => {
       };
     }
     func();
-  }, [flightId]);
+  }, [roomId]);
 
   const sendMessage = () => {
     if (socket && inputText.trim()) {
       const message = {
         type: 'message',
         userId : user,
-        room: flightId,
+        room: roomId,
         content: inputText,
       };
       socket.send(JSON.stringify(message));
@@ -123,8 +124,8 @@ const ChatRoom: React.FC = () => {
             <ArrowLeft color="white" size={24} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>{type === 'group' ? 'Flight Group' : 'Individual Chat'}</Text>
-            <Text style={styles.headerSubtitle}>{flightName} • {flightId}</Text>
+            {/* <Text style={styles.headerTitle}>{type === 'group' ? 'Flight Group' : 'Individual Chat'}</Text> */}
+            <Text style={styles.headerSubtitle}>{roomName}</Text>
           </View>
         </View>
       </LinearGradient>

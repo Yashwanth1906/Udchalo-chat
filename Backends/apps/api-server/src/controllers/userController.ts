@@ -69,7 +69,7 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
 
 export const createBooking = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { flightId, emails } = req.body;
+          const { flightId, emails } = req.body;
         if (!flightId || !Array.isArray(emails) || emails.length === 0) {
             res.status(400).json({ success: false, message: "Invalid input data" });
             return;

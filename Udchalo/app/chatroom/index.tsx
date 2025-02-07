@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, Alert } from "react-native";
 import { Send, ArrowLeft } from "lucide-react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
-import BottomNav from '../components/BottomNav';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BACKEND_URL } from "@/config";
+import DropDownPicker from 'react-native-dropdown-picker';
 
 interface Message {
-  id: string;
+  userId: number;
   username: string;
   content: string;
   room: number;
   timestamp: string | Date;
   isUser: boolean;
-  type : string;
+  type: string;
 }
 
 const getUsername = async () => {
@@ -30,63 +30,93 @@ const getUsername = async () => {
   }
 };
 
+const getUserId = async () => {
+  try {
+    const userId = await AsyncStorage.getItem('userId');
+    if (userId !== null) {
+      return parseInt(userId, 10);
+    }
+  } catch (e) {
+    console.log(e);
+  }
+};
 
 const ChatRoom: React.FC = () => {
-  const [user,setUser] = useState<number | null>(1);
+  const [userId, setUser] = useState<number | undefined>(-1);
   const { colors } = useTheme();
-  const { roomName = "Announcemnet", roomId = 1} = useLocalSearchParams<{ roomName?: string; roomId?: number}>();
-  console.log("Room Id : " + roomId);
+  const { roomName = "Announcement", roomId = 1 } = useLocalSearchParams<{ roomName?: string; roomId?: number }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [announcementType, setAnnouncementType] = useState(null);
+  const [openDropdown, setOpenDropdown] = useState(false);
+  const [announcementText, setAnnouncementText] = useState("");
+  const [activeMembers, setActiveMembers] = useState<string[]>([]);
+
   useEffect(() => {
-    const func = async() =>{
+    const func = async () => {
+      if (roomName.toLowerCase() === "announcement") {
+        setTimeout(() => setShowToast(true), 10000);
+      }
       const ws = new WebSocket(BACKEND_URL);
       const username = await getUsername();
+      const user = await getUserId();
+      setUser(user);
+
       setSocket(ws);
+
       ws.onopen = () => {
         console.log('Connected to WebSocket server');
-        ws.send(JSON.stringify({
-          type: 'join',
-          room: roomId,
-          username: username
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'join',
+            userId: user,
+            room: roomId,
+            username: username
+          })
+        );
       };
+
       ws.onmessage = (event) => {
         const message: Message = JSON.parse(event.data);
         if (message.room === roomId) {
           if (message.type === 'history') {
-            // If the message is history, prepopulate chat with all previous messages
             const historyMessages = JSON.parse(message.content || '[]');
             setMessages((prevMessages) => [
               ...prevMessages,
               ...historyMessages.map((msg: Message) => ({
-                id: msg.id || `${Date.now()}`,
+                userId: msg.userId || -1,
                 username: msg.username || '',
                 content: msg.content || '',
                 room: msg.room || roomId,
-                isUser: msg.username === username,
+                isUser: msg.userId === user,
                 timestamp: new Date(msg.timestamp || Date.now()),
+                type: msg.type
               }))
             ]);
           } else {
-            // Handle regular messages
             setMessages((prevMessages) => [
               ...prevMessages,
               {
-                id: message.id || `${Date.now()}`,
+                userId: message.userId || -1,
                 username: message.username || '',
                 content: message.content || '',
                 room: message.room || roomId,
-                isUser: message.username === username,
+                isUser: message.userId === user,
                 timestamp: new Date(message.timestamp || Date.now()),
-                type : message.type
+                type: message.type
               }
             ]);
+            if (message.type === 'join') {
+              Alert.alert(message.username);
+              setActiveMembers((prev) => [...prev, message.username]);
+            } else if (message.type === 'leave') {
+              setActiveMembers((prev) => prev.filter((name) => name !== message.username));
+            }
           }
         }
       };
-  
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
@@ -99,20 +129,36 @@ const ChatRoom: React.FC = () => {
       return () => {
         ws.close();
       };
-    }
+    };
+
     func();
-  }, [roomId]);
+  }, [roomId, roomName]);
 
   const sendMessage = () => {
     if (socket && inputText.trim()) {
       const message = {
         type: 'message',
-        userId : user,
+        userId: userId,
         room: roomId,
         content: inputText,
       };
       socket.send(JSON.stringify(message));
       setInputText("");
+    }
+  };
+
+  const sendAnnouncement = () => {
+    if (socket && announcementText.trim() && announcementType) {
+      const message = {
+        type: 'announcement',
+        userId,
+        room: roomId,
+        content: `${announcementType}: ${announcementText}`,
+      };
+      socket.send(JSON.stringify(message));
+      setShowToast(false);
+      setAnnouncementText("");
+      setAnnouncementType(null);
     }
   };
 
@@ -124,8 +170,12 @@ const ChatRoom: React.FC = () => {
             <ArrowLeft color="white" size={24} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            {/* <Text style={styles.headerTitle}>{type === 'group' ? 'Flight Group' : 'Individual Chat'}</Text> */}
             <Text style={styles.headerSubtitle}>{roomName}</Text>
+            {activeMembers.length > 0 && (
+              <Text style={styles.activeMembersText}>
+                Active Members: {activeMembers.join(", ")}
+              </Text>
+            )}
           </View>
         </View>
       </LinearGradient>
@@ -133,7 +183,7 @@ const ChatRoom: React.FC = () => {
       <ScrollView style={styles.chatContainer} contentContainerStyle={styles.chatContent}>
         {messages.map((message) => (
           <View
-            key={message.id}
+            key={`${message.userId}-${message.timestamp}`}
             style={[styles.messageContainer, message.isUser ? styles.userMessage : styles.otherMessage]}
           >
             {message.isUser ? (
@@ -175,7 +225,28 @@ const ChatRoom: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      <BottomNav />
+      {showToast && (
+        <View style={styles.toastContainer}>
+          <Text style={styles.toastTitle}>Make an Announcement</Text>
+          <DropDownPicker
+            open={openDropdown}
+            value={announcementType}
+            items={[{ label: "Gate Change", value: "Gate Change" }, { label: "Delay", value: "Delay" }]}
+            setOpen={setOpenDropdown}
+            setValue={setAnnouncementType}
+            style={styles.dropdown}
+          />
+          <TextInput
+            style={styles.toastInput}
+            placeholder="Enter announcement..."
+            value={announcementText}
+            onChangeText={setAnnouncementText}
+          />
+          <TouchableOpacity style={styles.toastSendButton} onPress={sendAnnouncement}>
+            <Send size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
@@ -203,15 +274,15 @@ const styles = StyleSheet.create({
   headerInfo: {
     flex: 1,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-  },
   headerSubtitle: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 2,
+  },
+  activeMembersText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 4,
   },
   chatContainer: {
     flex: 1,
@@ -296,6 +367,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  toastContainer: {
+    position: "absolute",
+    bottom: 80,
+    right: 10,
+    backgroundColor: "#333",
+    padding: 12,
+    borderRadius: 8,
+    width: 250,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  toastTitle: { color: "white", fontWeight: "bold", marginBottom: 4 },
+  dropdown: { marginBottom: 8 },
+  toastInput: { backgroundColor: "white", padding: 8, borderRadius: 4, marginBottom: 8 },
+  toastSendButton: { backgroundColor: "#007bff", padding: 8, borderRadius: 4, alignItems: "center" },
 });
 
 export default ChatRoom;

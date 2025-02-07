@@ -1,13 +1,39 @@
 import dotenv from 'dotenv';
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { Flight } from './../../../../node_modules/.prisma/client/index.d';
 
 import { Request, Response,NextFunction } from "express";
 import prisma from "../../../../packages/db/src/index";
 import { createtoken } from '..';
 
 dotenv.config()
+
+export const userBookings = async(req : Request,res : Response) : Promise<void> =>{
+    try {
+        const {bookingId,flightId} = req.body;
+        const passengers = await prisma.booking.findUnique({
+            where:{
+                id : bookingId,
+                flightId : flightId
+            }, select :{
+                users : {
+                    select :{
+                        name : true,
+                        age : true,
+                        id : true,
+                        gender : true
+                    }
+                }
+            }
+        })
+        res.json({success : true,passengers});
+    } catch(e) {
+        console.log(e);
+        res.json({success : false,message : e});
+    }
+}
+
+
 export const getFlight = async (req: Request, res: Response): Promise<void> => {
     console.log("Running");
     try {
@@ -63,43 +89,37 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
     } catch (e) {
         console.error(e);
         res.json({ success: false, error: e });
-        return;
-        res.status(500).json({ success: false, message: "User creation failed", error: e });
     }
 };
 
 
 export const createBooking = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { flightId, email } = req.body;
+        const { flightId, emails } = req.body;
 
-        const [booking, userMapping] = await prisma.$transaction([
-            prisma.booking.create({
-                data: {
-                    flightId: flightId
-                }
-            }),
-            prisma.user.update({
-                where: {
-                    email: email
-                },
-                data: {
-                    bookingId: undefined
-                }
-            })
-        ]);
-        await prisma.user.update({
-            where: { email: email },
-            data: { bookingId: booking.id }
+        if (!Array.isArray(emails) || emails.length === 0) {
+            res.status(400).json({ success: false, message: "Invalid email list" });
+        }
+        const booking = await prisma.booking.create({
+            data: { flightId: flightId }
         });
+        await prisma.$transaction(
+            emails.map((email : string) => 
+                prisma.user.update({
+                    where: { email },
+                    data: { bookingId: booking.id }
+                })
+            )
+        );
 
-        res.json({ success: true, message: "Successfully booked and mapped" });
+        res.json({ success: true, message: "Successfully booked and mapped", bookingId: booking.id });
 
     } catch (e) {
         console.error(e);
         res.status(500).json({ success: false, message: "Booking failed", error: e });
     }
 };
+
 
 interface loginPass extends Request {
     body:{

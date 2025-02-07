@@ -24,7 +24,7 @@ export function createtoken(id:number)
     return token
 }
 interface Message {
-    type: 'message' | 'join' | 'leave' | 'history';
+    type: 'message' | 'join' | 'leave' | 'history' | 'announcement';
     room: string;
     userId : number;
     username?: string;
@@ -56,6 +56,9 @@ wss.on('connection', (ws : WebSocket) => {
                     break;
                 case 'leave':
                     handleLeave(ws,message);
+                    break;
+                case 'announcement':
+                    handleMessage(ws,message);
                     break;
                 default:
                     console.warn('Unknown message type:', message.type);
@@ -103,7 +106,7 @@ function handleMessage(ws: WebSocket, message: Message) {
     if (!clientInfo || !message.content) return;
 
     const fullMessage: Message = {
-        type: 'message',
+        type: message.type,
         userId : message.userId,
         room: clientInfo.room,
         username: clientInfo.username,

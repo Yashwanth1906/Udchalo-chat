@@ -4,6 +4,8 @@ import { Bell, Search, MessageCircle, Home, Calendar, DollarSign, Menu } from "l
 import { router } from "expo-router";
 import axios from "axios";
 import { BACKEND_URL } from "@/config";
+import BottomNav from "../components/BottomNav";
+import TopBar from "../components/TopBar";
 
 interface Flight {
   name : string,
@@ -32,14 +34,7 @@ const FlightChatRooms = () => {
   },[])
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>udChalo</Text>
-        <View style={styles.headerIcons}>
-          <Bell color="white" size={20} />
-          <Search color="white" size={20} />
-        </View>
-      </View>
+      <TopBar/>
       <ScrollView style={styles.content}>
         <TextInput
           style={styles.searchBar}
@@ -57,24 +52,10 @@ const FlightChatRooms = () => {
           </View>
         ))}
       </ScrollView>
-
-      <View style={styles.bottomNav}>
-        <NavItem icon={Home} title="Home" />
-        <NavItem icon={Calendar} title="Bookings" />
-        <NavItem icon={DollarSign} title="UC Earnings" />
-        <NavItem icon={MessageCircle} title="Chat" />
-        <NavItem icon={Menu} title="Menu" />
-      </View>
+      <BottomNav/>
     </View>
   );
 };
-
-const NavItem = ({ icon: Icon, title }) => (
-  <TouchableOpacity style={styles.navItem}>
-    <Icon size={20} color="#1F2937" />
-    <Text style={styles.navText}>{title}</Text>
-  </TouchableOpacity>
-);
 
 const styles = StyleSheet.create({
   roomNo : {

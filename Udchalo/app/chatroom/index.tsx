@@ -7,6 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BACKEND_URL } from "@/config";
 import DropDownPicker from 'react-native-dropdown-picker';
+import trie from "../utils/trie";
 
 interface Message {
   userId: number;
@@ -142,8 +143,12 @@ const ChatRoom: React.FC = () => {
         room: roomId,
         content: inputText,
       };
-      socket.send(JSON.stringify(message));
-      setInputText("");
+      if(trie.search(message.content)) {
+        Alert.alert("Abusive word found,change it")
+      } else {
+        socket.send(JSON.stringify(message));
+        setInputText("");
+      }
     }
   };
 
@@ -155,10 +160,14 @@ const ChatRoom: React.FC = () => {
         room: roomId,
         content: `${announcementType}: ${announcementText}`,
       };
-      socket.send(JSON.stringify(message));
-      setShowToast(false);
-      setAnnouncementText("");
-      setAnnouncementType(null);
+      if(trie.search(message.content)) {
+          Alert.alert("Abusive word found change it");
+      } else {
+        socket.send(JSON.stringify(message));
+        setShowToast(false);
+        setAnnouncementText("");
+        setAnnouncementType(null);
+      }
     }
   };
 

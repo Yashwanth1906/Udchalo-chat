@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
+import TopBar from "../components/TopBar";
+import BottomNav from "../components/BottomNav";
 
 const adjectives = ["Brave", "Clever", "Mighty", "Swift", "Bold", "Fierce", "Gentle", "Loyal", "Witty", "Charming"];
 const animals = ["Tiger", "Fox", "Eagle", "Wolf", "Panda", "Bear", "Hawk", "Cobra", "Otter", "Jaguar"];
@@ -12,7 +14,7 @@ const UsernameScreen = () => {
     const firstName = adjectives[Math.floor(Math.random() * adjectives.length)];
     const lastName = animals[Math.floor(Math.random() * animals.length)];
     setUsername(firstName + " " + lastName);
-  };  
+  };
   const saveUsername = async (name) => {
     if (!name.trim()) {
       alert("Username cannot be empty!");
@@ -24,23 +26,24 @@ const UsernameScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Choose Your Username</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter Username"
-        value={username}
-        onChangeText={setUsername}
-      />
-      <TouchableOpacity style={styles.button} onPress={() => saveUsername(username)}>
-        <Text style={styles.buttonText}>Set Username</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={() => getRandomUsername()}>
-        <Text style={styles.buttonText}>Get Random Username</Text>
-      </TouchableOpacity>
-        <Text>{username}</Text>
-      <TouchableOpacity onPress={() => saveUsername(username)}>
-        <Text>Save</Text>
-      </TouchableOpacity>
+      <TopBar/>
+        <Text style={styles.title}>Choose Your Username</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Username"
+          value={username}
+          onChangeText={setUsername}
+        />
+        <TouchableOpacity style={styles.button} onPress={() => saveUsername(username)}>
+          <Text style={styles.buttonText}>Set Username</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => getRandomUsername()}>
+          <Text style={styles.buttonText}>Get Random Username</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => saveUsername(username)}>
+          <Text style={styles.buttonText}>Save</Text>
+        </TouchableOpacity>
+      <BottomNav/>
     </View>
   );
 };

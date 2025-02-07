@@ -1,24 +1,81 @@
 // import React, { useEffect, useState } from "react";
-// import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from "react-native";
+// import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from "react-native";
 // import AsyncStorage from "@react-native-async-storage/async-storage";
+// import { io, Socket } from "socket.io-client";
+// import trie from "../utils/trie";
+// import NetInfo from "@react-native-community/netinfo";
 
+// const SERVER_URL = "http://192.168.205.9:2000";
+
+// type Message = {
+//   id: string;
+//   user: string;
+//   text: string;
+//   timestamp: string;
+// };
+// type StoreMessage = {
+//   type : string;
+//   userId : number,
+//   content : string,
+//   timestamp : string
+// }
 // const ChatScreen = () => {
-//   const [username, setUsername] = useState("");
-//   const [messages, setMessages] = useState([]);
+//   const [socket, setSocket] = useState<Socket | null>(null);
+//   const [messages, setMessages] = useState<Message[]>([]);
 //   const [text, setText] = useState("");
+//   const [username, setUsername] = useState("");
+//   const [isConnected, setIsConnected] = useState(null);
+//   const room = "chatroom1";
 
 //   useEffect(() => {
-//     const fetchUsername = async () => {
-//       const storedName = await AsyncStorage.getItem("username");
-//       if (storedName) setUsername(storedName);
+//     const initUsername = async () => {
+//       let storedUsername = await AsyncStorage.getItem("username");
+//       if (!storedUsername) {
+//         storedUsername = "User" + Math.floor(Math.random() * 1000);
+//         await AsyncStorage.setItem("username", storedUsername);
+//       }
+//       setUsername(storedUsername);
 //     };
-//     fetchUsername();
+
+//     initUsername();
+
+//     const newSocket = io(SERVER_URL, { transports: ["websocket"] });
+//     setSocket(newSocket);
+
+//     newSocket.emit("joinRoom", room);
+
+//     newSocket.on("chatMessage", (message: Message) => {
+//       setMessages((prevMessages) => [...prevMessages, message]);
+//     });
+
+//     return () => {
+//       newSocket.disconnect();
+//     };
+//   }, []);
+
+//   useEffect(() => {
+//     const unsubscribe = NetInfo.addEventListener(state => {
+//       setIsConnected(state.isConnected);
+//     });
+
+//     return () => unsubscribe();
 //   }, []);
 
 //   const sendMessage = () => {
-//     if (text.trim()) {
-//       setMessages([...messages, { id: Date.now().toString(), sender: username, text }]);
-//       setText("");
+//     if (socket && text.trim() !== "") {
+//       const message: Message = {
+//         id: Date.now().toString(),
+//         user: username,
+//         text,
+//         timestamp: new Date().toLocaleTimeString(),
+//       };
+//       if(trie.search(text)) {
+//         Alert.alert("Abusive word found");
+//       }
+//       else {
+//         socket.emit("chatMessage", { message, room });
+//         setText("");
+//       }
 //     }
 //   };
 
@@ -29,9 +86,10 @@
 //         data={messages}
 //         keyExtractor={(item) => item.id}
 //         renderItem={({ item }) => (
-//           <View style={[styles.message, item.sender === username ? styles.myMessage : styles.otherMessage]}>
-//             <Text style={styles.sender}>{item.sender}</Text>
+//           <View style={[styles.message, item.user === username ? styles.myMessage : styles.otherMessage]}>
+//             <Text style={styles.sender}>{item.user}</Text>
 //             <Text style={styles.text}>{item.text}</Text>
+//             <Text style={styles.timestamp}>{item.timestamp}</Text>
 //           </View>
 //         )}
 //       />
@@ -62,22 +120,28 @@
 //   otherMessage: { alignSelf: "flex-start", backgroundColor: "#EAEAEA", marginLeft: 10 },
 //   sender: { fontWeight: "bold", marginBottom: 3 },
 //   text: { fontSize: 16 },
+//   timestamp: { fontSize: 12, color: "gray", marginTop: 5, alignSelf: "flex-end" },
 // });
 
 // export default ChatScreen;
 
 
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { io, Socket } from "socket.io-client";
+import NetInfo from "@react-native-community/netinfo";
+import axios from "axios";
+import trie from "../utils/trie";
+import { BACKEND_URL } from "@/config";
 
-const SERVER_URL = "http://localhost:4000"; // Replace with your server's IP
+const SERVER_URL = "http://192.168.205.9:2000";
 
 type Message = {
   id: string;
-  user: string;
-  text: string;
+  username: string;
+  userId : number;
+  content: string;
   timestamp: string;
 };
 
@@ -86,7 +150,8 @@ const ChatScreen = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [username, setUsername] = useState("");
-  const room = "chatroom1"; // Fixed room
+  const [userId , setUserId] = useState(1);
+  const room = "chatroom1";
 
   useEffect(() => {
     const initUsername = async () => {
@@ -97,12 +162,16 @@ const ChatScreen = () => {
       }
       setUsername(storedUsername);
     };
-
     initUsername();
-
+    const initUserId = async () =>{
+      let userId = await AsyncStorage.getItem("userId");
+      if(userId) {
+        setUserId(Number(userId));
+      }
+    }
+    initUserId();
     const newSocket = io(SERVER_URL, { transports: ["websocket"] });
     setSocket(newSocket);
-
     newSocket.emit("joinRoom", room);
 
     newSocket.on("chatMessage", (message: Message) => {
@@ -113,20 +182,28 @@ const ChatScreen = () => {
       newSocket.disconnect();
     };
   }, []);
+  const sendMessage = async () => {
+    if (text.trim() === "") return;
 
-  const sendMessage = () => {
-    if (socket && text.trim() !== "") {
-      const message: Message = {
-        id: Date.now().toString(),
-        user: username,
-        text,
-        timestamp: new Date().toLocaleTimeString(),
-      };
+    const message: Message = {
+      id: Date.now().toString(),
+      username: username,
+      content : text,
+      userId : userId,
+      timestamp: new Date().toLocaleTimeString(),
+    };
 
-      socket.emit("chatMessage", { message, room });
-
-      setText("");
+    if (trie.search(text)) {
+      Alert.alert("Abusive word found");
+      return;
     }
+
+    if (socket) {
+      socket.emit("chatMessage", { message, room });
+    }
+
+    setMessages((prevMessages) => [...prevMessages, message]);
+    setText("");
   };
 
   return (
@@ -136,20 +213,15 @@ const ChatScreen = () => {
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={[styles.message, item.user === username ? styles.myMessage : styles.otherMessage]}>
-            <Text style={styles.sender}>{item.user}</Text>
-            <Text style={styles.text}>{item.text}</Text>
+          <View style={[styles.message, item.username === username ? styles.myMessage : styles.otherMessage]}>
+            <Text style={styles.sender}>{item.username}</Text>
+            <Text style={styles.text}>{item.content}</Text>
             <Text style={styles.timestamp}>{item.timestamp}</Text>
           </View>
         )}
       />
       <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Type a message..."
-          value={text}
-          onChangeText={setText}
-        />
+        <TextInput style={styles.input} placeholder="Type a message..." value={text} onChangeText={setText} />
         <TouchableOpacity style={styles.button} onPress={sendMessage}>
           <Text style={styles.buttonText}>Send</Text>
         </TouchableOpacity>

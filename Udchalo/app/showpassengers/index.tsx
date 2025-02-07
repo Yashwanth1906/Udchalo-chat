@@ -6,6 +6,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios";
 import { BACKEND_URL } from "@/config";
+import BottomNav from "../components/BottomNav";
+import TopBar from "../components/TopBar";
 
 type Passenger = {
   id: number;
@@ -71,16 +73,7 @@ const FlightChatRoomDetails: React.FC = () => {
   };
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#1E40AF', '#3B82F6']} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft color="white" size={24} />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Flight Details</Text>
-          <Text style={styles.headerSubtitle}>{flightName} ({flightId})</Text>
-        </View>
-      </LinearGradient>
-
+      <TopBar/>
       <ScrollView style={styles.content}>
         {!showPassengers && !showUsernames && (
           <View style={styles.card}>
@@ -97,7 +90,6 @@ const FlightChatRoomDetails: React.FC = () => {
             </TouchableOpacity>
           </View>
         )}
-
         {showPassengers && (
           <View style={styles.passengerCard}>
             <Text style={styles.cardTitle}>Select Passenger</Text>
@@ -120,6 +112,7 @@ const FlightChatRoomDetails: React.FC = () => {
           </View>
         )}
       </ScrollView>
+      <BottomNav/>
     </View>
   );
 };

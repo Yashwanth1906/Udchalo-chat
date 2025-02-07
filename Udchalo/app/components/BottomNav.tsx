@@ -9,7 +9,7 @@ const BottomNav = () => {
     <View style={styles.bottomNav}>
       <NavItem icon={Home} title="Home" route="/" router={router} />
       <NavItem icon={Calendar} title="Bookings" route="/bookings" router={router} />
-      <NavItem icon={MessageCircle} title="Chat" route="/showchatrooms" router={router} />
+      <NavItem icon={MessageCircle} title="Chat" route="/username" router={router} />
       <NavItem icon={Menu} title="Menu" route="/menu" router={router} />
     </View>
   );

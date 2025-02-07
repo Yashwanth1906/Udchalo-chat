@@ -4,6 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import axios from 'axios';
 import { BACKEND_URL } from '@/config';
+import TopBar from '../components/TopBar';
+import BottomNav from '../components/BottomNav';
 
 interface ChatRooms {
     id: number;
@@ -37,6 +39,7 @@ const ChatRooms = () => {
 
     return (
         <View style={styles.container}>
+            <TopBar/>
             <Text style={styles.header}>Available Chat Rooms</Text>
             <FlatList
                 data={chatrooms ?? []}
@@ -53,6 +56,7 @@ const ChatRooms = () => {
                     </View>
                 )}
             />
+            <BottomNav/>
         </View>
     );
 };

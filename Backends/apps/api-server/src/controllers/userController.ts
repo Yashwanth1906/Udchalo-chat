@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { Request, Response,NextFunction } from "express";
 import prisma from "../../../../packages/db/src/index";
 import { createtoken } from '..';
+import moment from "moment";
 
 dotenv.config()
 
@@ -148,16 +149,146 @@ export const loginuser= async (req:loginPass,res:Response):Promise<void>=>{
     return 
 }
 
+// export const getAllBookings= async (req:Request,res:Response):Promise<void>=>{
+//     const {userId}=req.body
+//     try{
+//         console.log("called");
+//         const bookings = await prisma.user.findUnique({
+//             where:{
+//                 id : userId
+//             },select :{
+//                 booking : {
+//                     select :{
+//                         flight : {
+//                             select : {
+//                                 name : true,
+//                                 flightNo : true,
+//                                 departureDate : true,
+//                                 arrivalDate : true
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         })
+//         res.json({success:true,bookings});
+//     } catch(e) {
+//         console.log(e);
+//         res.json({success:false,message : e})
+//     }
+// }
 
-interface loginPass extends Request {
-    body:{
-        email:string,
-        password:string
+// export const getAllBookings = async (req: Request, res: Response): Promise<void> => {
+//     const { userId } = req.body;
+//     try {
+//         console.log("called");
+//         const user = await prisma.user.findUnique({
+//             where: {
+//                 id: userId
+//             },
+//             select: {
+//                 booking: {
+//                     select: {
+//                         flight: {
+//                             select: {
+//                                 name: true,
+//                                 flightNo: true,
+//                                 departureDate: true,
+//                                 arrivalDate: true
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         });
+//         if (!user || !user.booking) {
+//             res.json({ success: false, message: "No bookings found" });
+//             return;
+//         }
+//         const today = moment();
+//         const bookings = Array.isArray(user.booking) ? user.booking.map((booking) => {
+//             const { name, flightNo, departureDate, arrivalDate } = booking.flight;
+//             const depDate = moment(departureDate);
+//             const arrDate = moment(arrivalDate);
+
+//             let status = "Upcoming";
+//             if (arrDate.isBefore(today)) {
+//                 status = "Completed";
+//             }
+
+//             return {
+//                 flightName: name,
+//                 flightNo,
+//                 departureDate,
+//                 arrivalDate,
+//                 status
+//             };
+//         }) : [];
+//         console.log(bookings);
+//         res.json({ success: true, bookings });
+//     } catch (e) {
+//         console.log(e);
+//         res.status(500).json({ success: false, message: "Server error" });
+//     }
+// };
+
+
+export const getAllBookings = async (req: Request, res: Response): Promise<void> => {
+    const { userId } = req.body;
+    try {
+        console.log("called");
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                booking: {
+                    select: {
+                        flight: {
+                            select: {
+                                name: true,
+                                flightNo: true,
+                                departureDate: true,
+                                arrivalDate: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!user || !user.booking) {
+            res.json({ success: false, message: "No bookings found" });
+            return;
+        }
+
+        const today = moment();
+
+        // Convert the Prisma result into an array
+        const bookingsArray = Array.isArray(user.booking) ? user.booking : [user.booking];
+
+        const bookings = bookingsArray.map((booking) => {
+            const { name, flightNo, departureDate, arrivalDate } = booking.flight;
+            const depDate = moment(departureDate);
+            const arrDate = moment(arrivalDate);
+
+            let status = "Upcoming";
+            if (arrDate.isBefore(today)) {
+                status = "Completed";
+            }
+
+            return {
+                flightName: name,
+                flightNo,
+                departureDate,
+                arrivalDate,
+                status
+            };
+        });
+        console.log(bookings);
+        res.json({ success: true, bookings });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ success: false, message: e });
     }
-}
-
-
-
-
+};
 
 export default { getFlight, createUser, createBooking};

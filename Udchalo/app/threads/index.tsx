@@ -13,9 +13,8 @@ interface ChatRooms {
 
 const ChatRooms = () => {
     const navigation = useNavigation();
-    const { flightName = "Indigo", flightId = "AI302",username = "John Doe" } = useLocalSearchParams<{ flightName?: string; flightId?: string,username : string }>();
+    const { flightName = "Indigo", flightId = "AI302",username = "John Doe"} = useLocalSearchParams<{ flightName?: string; flightId?: string,username : string }>();
     const [chatrooms, setChatRooms] = useState<ChatRooms[]>([]);
-
     useEffect(() => {
         const fetchChatRooms = async () => {
             console.log(flightId,flightName,username);

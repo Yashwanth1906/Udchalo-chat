@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, Image } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, Image, Alert } from "react-native";
 import { ArrowLeft } from "lucide-react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from "axios";
+import { BACKEND_URL } from "@/config";
 
 type Passenger = {
   id: number;
@@ -25,17 +27,34 @@ const FlightChatRoomDetails: React.FC = () => {
     "Flaming Cheetah", "Swift Eagle", "Sly Fox", "Bold Lion", "Graceful Swan", "Mighty Tiger"
   ];
 
-  const fetchBookingDetails = () => {
-    const mockData: Passenger[] = [
-      { id: 1, name: "John Doe", age: 30, gender: "Male" },
-      { id: 2, name: "Jane Doe", age: 28, gender: "Female" },
-    ];
-    setPassengers(mockData);
-    setShowPassengers(true);
+  const fetchBookingDetails = async() => {
+    await axios.post(`${BACKEND_URL}/api/user/getbookings`,{bookingId,flightId})
+    .then((res)=>{
+      console.log(res.data);
+      if(res.data.success === true) {
+        console.log(res.data.passengers.users);
+        setPassengers(res.data.passengers.users);
+        setShowPassengers(true);
+      } else {
+        Alert.alert("No passengers found in that booking Id")
+        router.push("/showchatrooms");
+      }
+    }).catch((er)=>{
+      Alert.alert(er);
+    })
+    console.log(passengers);
   };
+  const storeUserId = async(userId : number) =>{
+    try {
+      await AsyncStorage.setItem("userId" , userId.toString());
+    } catch(e) {
+      console.error(e);
+    }
+  }
 
   const handlePassengerSelection = (id: number) => {
     setSelectedPassenger(id);
+    storeUserId(id);
     setShowPassengers(false);
     setShowUsernames(true);
   };

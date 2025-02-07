@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createFlight, createFlightRoom, getbookings, signIn } from "../controllers/adminController";
+import { createFlight, createFlightRoom, getbookings, getFligtRooms, signIn } from "../controllers/adminController";
 
 export const adminRouter = Router();
 adminRouter.post("/signin", signIn);

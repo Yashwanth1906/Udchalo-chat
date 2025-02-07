@@ -1,3 +1,4 @@
+
 import { Request, Response,NextFunction } from "express";
 import prisma from "../../../../packages/db/src/index";
 
@@ -65,7 +66,7 @@ export const getbookings =async (req:bookings,res:Response)=>{
             const bookings = await prisma.booking.findMany(
                 {
                     where:{
-                        flightId: flightNo
+                        flightId:flightNo
                     }
                     ,include:{users:true}
                 }

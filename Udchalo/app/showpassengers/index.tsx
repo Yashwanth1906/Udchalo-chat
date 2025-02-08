@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, Image, Alert } from "react-native";
-import { ArrowLeft } from "lucide-react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios";
 import { BACKEND_URL } from "@/config";
@@ -23,7 +21,6 @@ const FlightChatRoomDetails: React.FC = () => {
   const [selectedPassenger, setSelectedPassenger] = useState<number | null>(null);
   const [showPassengers, setShowPassengers] = useState(false);
   const [showUsernames, setShowUsernames] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
 
   const mockUsernames = [
     "Flaming Cheetah", "Swift Eagle", "Sly Fox", "Bold Lion", "Graceful Swan", "Mighty Tiger"

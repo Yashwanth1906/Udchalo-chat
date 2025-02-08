@@ -6,6 +6,7 @@ import { Request, Response,NextFunction } from "express";
 import prisma from "../../../../packages/db/src/index";
 import { createtoken } from '..';
 import moment from "moment";
+import redis from '../../../../packages/db/redis/redisClient';
 
 dotenv.config()
 
@@ -287,6 +288,38 @@ export const getAllBookings = async (req: Request, res: Response): Promise<void>
         res.json({ success: true, bookings });
     } catch (e) {
         console.log(e);
+        res.status(500).json({ success: false, message: e });
+    }
+};
+
+// export const syncMessages = async (req: Request, res: Response): Promise<void> => {
+//     try{
+        
+//     }catch(e) {
+//         console.log(e);
+//         res.json({success:false,message : e})
+//     }
+// }
+
+export const syncMessages = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const messages = req.body.messages; // Assuming messages are sent in req.body
+
+        if (!Array.isArray(messages)) {
+            res.status(400).json({ success: false, message: "Invalid messages format" });
+            return;
+        }
+
+        for (const message of messages) {
+            // await redis.lPush("messageQueue", JSON.stringify(message));
+            redis.lPush("message", JSON.stringify(message))
+            .then(() => console.log("Message successfully pushed to Redis"))
+            .catch(err => console.error("Redis lPush failed:", err));
+        }
+
+        res.json({ success: true, message: "Messages synced successfully" });
+    } catch (e) {
+        console.error(e);
         res.status(500).json({ success: false, message: e });
     }
 };

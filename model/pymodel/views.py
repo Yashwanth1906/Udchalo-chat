@@ -76,7 +76,6 @@ def calculate_adjusted_sentiment(texts):
     adjusted_sentiment_scores = [sentiment_value_map[s] for s in adjusted_sentiments]
     return sum(adjusted_sentiment_scores) / len(adjusted_sentiment_scores)
 
-# API Endpoint using Django REST Framework
 class FlightFeedbackAnalysis(APIView):
     def post(self, request):
         sentences = request.data.get("sentences", [])

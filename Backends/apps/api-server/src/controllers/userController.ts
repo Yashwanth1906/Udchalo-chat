@@ -1,11 +1,10 @@
 import dotenv from 'dotenv';
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-
 import { Request, Response,NextFunction } from "express";
 import prisma from "../../../../packages/db/src/index";
 import { createtoken } from '..';
 import moment from "moment";
+import crypto from "crypto";
 import redis from '../../../../packages/db/redis/redisClient';
 
 dotenv.config()
@@ -313,5 +312,51 @@ export const syncMessages = async (req: Request, res: Response): Promise<void> =
         res.status(500).json({ success: false, message: e });
     }
 };
+
+const SECRET_KEY = crypto.createHash("sha256").update("udchalo-chat").digest();
+const decryptContent = (encryptedContent: string): string => {
+  try {
+    const [ivHex, encryptedText] = encryptedContent.split(":");
+
+    if (!ivHex || !encryptedText) {
+      throw new Error("Invalid encrypted content format");
+    }
+
+    const iv = Buffer.from(ivHex, "hex");
+
+    if (iv.length !== 16) {
+      throw new Error(`Invalid IV length: ${iv.length}, expected 16 bytes`);
+    }
+
+    const decipher = crypto.createDecipheriv("aes-256-cbc", SECRET_KEY, iv);
+    let decrypted = decipher.update(encryptedText, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch (error : any) {
+    console.error("Decryption error:", error.message);
+    return "DECRYPTION_FAILED";
+  }
+};
+export const getMessages = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId }: { userId: number } = req.body;
+
+    const messages = await prisma.messages.findMany({
+      where: { userId: userId },
+      select: { content: true },
+    });
+
+    const decryptedMessages = messages.map((msg) => ({
+      content: decryptContent(msg.content),
+    }));
+
+    console.log(decryptedMessages);
+    res.json({ success: true, messages: decryptedMessages });
+  } catch (e) {
+    console.log(e);
+    res.json({ success: false, message: e });
+  }
+};
+
 
 export default { getFlight, createUser, createBooking};

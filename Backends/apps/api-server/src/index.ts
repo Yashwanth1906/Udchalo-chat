@@ -8,6 +8,7 @@ import { userRouter } from './routes/userRouter';
 import { adminRouter } from './routes/adminRouter';
 import redis from '../../../packages/db/redis/redisClient';
 import cors from 'cors';
+import axios from 'axios';
 
 const app = express();
 const server = createServer(app);
@@ -101,10 +102,9 @@ function handleJoin(ws: WebSocket, message: Message) {
     broadcastMessage(message.room, joinMessage);
 }
 
-function handleMessage(ws: WebSocket, message: Message) {
+async function handleMessage(ws: WebSocket, message: Message) {
     const clientInfo = clients.get(ws);
     if (!clientInfo || !message.content) return;
-
     const fullMessage: Message = {
         type: message.type,
         userId : message.userId,
@@ -114,6 +114,13 @@ function handleMessage(ws: WebSocket, message: Message) {
         timestamp: new Date(),
         messageId: uuidv4()
     };
+    await axios.post("http://localhost:8000/predict-controversy/",{
+        message : message.content
+    }).then((res)=>{
+        if(res.data.is_controversial) {
+            fullMessage.content = "Inappropriate content."
+        }
+    })
     rooms.get(clientInfo.room)?.push(fullMessage);
     broadcastMessage(clientInfo.room, fullMessage);
     console.log(fullMessage);

@@ -291,19 +291,9 @@ export const getAllBookings = async (req: Request, res: Response): Promise<void>
         res.status(500).json({ success: false, message: e });
     }
 };
-
-// export const syncMessages = async (req: Request, res: Response): Promise<void> => {
-//     try{
-        
-//     }catch(e) {
-//         console.log(e);
-//         res.json({success:false,message : e})
-//     }
-// }
-
 export const syncMessages = async (req: Request, res: Response): Promise<void> => {
     try {
-        const messages = req.body.messages; // Assuming messages are sent in req.body
+        const messages = req.body.messages;
 
         if (!Array.isArray(messages)) {
             res.status(400).json({ success: false, message: "Invalid messages format" });
@@ -311,7 +301,7 @@ export const syncMessages = async (req: Request, res: Response): Promise<void> =
         }
 
         for (const message of messages) {
-            // await redis.lPush("messageQueue", JSON.stringify(message));
+            message.type = "message";
             redis.lPush("message", JSON.stringify(message))
             .then(() => console.log("Message successfully pushed to Redis"))
             .catch(err => console.error("Redis lPush failed:", err));

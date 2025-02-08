@@ -1,6 +1,13 @@
 // import React, { useEffect, useState } from "react";
-// import { 
-//   View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert 
+// import {
+//   View,
+//   Text,
+//   TextInput,
+//   TouchableOpacity,
+//   FlatList,
+//   StyleSheet,
+//   Alert,
+//   Pressable,
 // } from "react-native";
 // import AsyncStorage from "@react-native-async-storage/async-storage";
 // import { io, Socket } from "socket.io-client";
@@ -17,7 +24,7 @@
 //   username: string;
 //   userId: number;
 //   content: string;
-//   timestamp: string;
+//   timestamp: Date;
 //   room: number;
 // };
 
@@ -31,133 +38,104 @@
 //   const room = "chatroom1";
 
 //   useEffect(() => {
-//     const initUsername = async () => {
-//       let storedUsername = await AsyncStorage.getItem("username");
-//       if (!storedUsername) {
-//         storedUsername = "User" + Math.floor(Math.random() * 1000);
-//         await AsyncStorage.setItem("username", storedUsername);
-//       }
-//       setUsername(storedUsername);
-//     };
-
-//     const initUserId = async () => {
-//       let storedUserId = await AsyncStorage.getItem("userId");
-//       if (storedUserId) {
-//         setUserId(Number(storedUserId));
-//       }
-//     };
-
-//     const loadMessages = async () => {
-//       const storedMessages = await AsyncStorage.getItem("messages");
-//       if (storedMessages) {
-//         setMessages(JSON.parse(storedMessages));
-//       }
-//     };
-
-//     const checkInternetConnection = () => {
-//       NetInfo.addEventListener((state) => {
-//         setIsConnected(state.isConnected ?? false);
-//         if (state.isConnected) {
-//           syncMessagesWithServer();
+//     const getUsername = async() =>{
+//       try{
+//         const username = await AsyncStorage.getItem("username");
+//         if(username) {
+//           setUsername(username);
 //         }
-//       });
-//     };
-
-//     initUsername();
-//     initUserId();
-//     loadMessages();
-//     checkInternetConnection();
-
+//       } catch(e) {
+//           Alert.alert("Erroring fetching username")
+//       }
+//     }
+//     getUsername();
 //     const newSocket = io(SERVER_URL, { transports: ["websocket"] });
-
 //     setSocket(newSocket);
 //     newSocket.emit("joinRoom", room);
 
-//     newSocket.off("chatMessage");
+//     newSocket.on("previousMessages", (previousMessages: Message[]) => {
+//       setMessages(previousMessages);
+//     });
+
 //     newSocket.on("chatMessage", (message: Message) => {
-//       console.log("Received message:", message);
-//       saveMessageLocally(message);
-//       setMessages((prevMessages) => [...prevMessages, message]);
+//       setMessages((prev) => [...prev, message]);
+//     });
+
+//     NetInfo.addEventListener((state) => {
+//       setIsConnected(state.isConnected ?? false);
+//       if (state.isConnected) {
+//         syncMessagesWithServer();
+//       }
 //     });
 
 //     return () => {
+//       newSocket.off("chatMessage");
 //       newSocket.disconnect();
 //     };
 //   }, []);
 
 //   const saveMessageLocally = async (message: Message) => {
-//     const storedMessages = await AsyncStorage.getItem("messages");
-//     const messagesArray = storedMessages ? JSON.parse(storedMessages) : [];
-//     messagesArray.push(message);
-//     await AsyncStorage.setItem("messages", JSON.stringify(messagesArray));
+//     try {
+//       const storedMessages = await AsyncStorage.getItem("messages");
+//       const messagesArray = storedMessages ? JSON.parse(storedMessages) : [];
+//       messagesArray.push(message);
+//       await AsyncStorage.setItem("messages", JSON.stringify(messagesArray));
+//     } catch (error) {
+//       console.error("Error saving message locally:", error);
+//     }
 //   };
 
 //   const syncMessagesWithServer = async () => {
-//     const storedMessages = await AsyncStorage.getItem("messages");
-//     if (storedMessages) {
-//       const messagesArray: Message[] = JSON.parse(storedMessages);
-//       console.log("Syncing messages:", messagesArray);
-      
-//       try {
-//         const res = await axios.post(`${BACKEND_URL}/api/user/syncmessages`, { messagesArray });
+//     try {
+//       const storedMessages = await AsyncStorage.getItem("messages");
+//       if (storedMessages) {
+//         const messagesArray: Message[] = JSON.parse(storedMessages);
+//         console.log("Syncing messages:", messagesArray);
+        
+//         const res = await axios.post(`${BACKEND_URL}/api/user/syncmessages`, {
+//           messages : messagesArray,
+//         });
+
 //         if (res.data.success) {
 //           Alert.alert("Messages successfully synced!");
 //           await AsyncStorage.removeItem("messages");
 //         } else {
 //           Alert.alert("Failed to sync messages.");
 //         }
-//       } catch (error) {
-//         console.error("Error syncing messages:", error);
-//         Alert.alert("Error syncing messages.");
 //       }
+//     } catch (error) {
+//       console.error("Error syncing messages:", error);
+//       Alert.alert("Error syncing messages.");
 //     }
 //   };
 
 //   const sendMessage = async () => {
-//     if (text.trim() === "") {
-//       console.log("Empty message, not sending.");
-//       return;
-//     }
-
-//     console.log("Attempting to send message:", text);
-
+//     if (text.trim() === "") return;
 //     if (trie.search(text)) {
-//       console.log("Abusive word found, blocking message.");
 //       Alert.alert("Abusive word found");
 //       return;
 //     }
 
 //     if (!socket) {
-//       console.log("Socket not connected.");
 //       Alert.alert("Connection error", "Socket is not connected.");
 //       return;
 //     }
 
 //     const message: Message = {
 //       id: uuidv4(),
-//       username: username,
-//       userId: userId,
+//       username,
+//       userId,
 //       content: text,
-//       timestamp: new Date().toLocaleTimeString(),
+//       timestamp: new Date(),
 //       room: 1,
 //     };
 
-//     console.log("Generated message:", message);
-
 //     saveMessageLocally(message);
-//     setMessages((prevMessages) => [...prevMessages, message]);
-
-//     socket.emit("chatMessage", { message, room });
-
-//     if (isConnected) {
-//       console.log("Syncing messages with server...");
-//       await syncMessagesWithServer();
-//     } else {
-//       console.log("No internet, storing message locally.");
-//     }
-
 //     setText("");
-//     console.log("Message sent and input cleared.");
+//     socket.emit("chatMessage", { message, room });
+//     if (isConnected) {
+//       await syncMessagesWithServer();
+//     }
 //   };
 
 //   return (
@@ -170,25 +148,19 @@
 //           <View style={[styles.message, item.username === username ? styles.myMessage : styles.otherMessage]}>
 //             <Text style={styles.sender}>{item.username}</Text>
 //             <Text style={styles.text}>{item.content}</Text>
-//             <Text style={styles.timestamp}>{item.timestamp}</Text>
+//             {/* <Text style={styles.timestamp}>{item.timestamp}</Text> */}
 //           </View>
 //         )}
 //       />
 //       <View style={styles.inputContainer}>
-//         <TextInput
-//           style={styles.input}
-//           placeholder="Type a message..."
-//           value={text}
-//           onChangeText={setText}
-//         />
-//         <TouchableOpacity style={styles.button} onPress={sendMessage}>
+//         <TextInput style={styles.input} placeholder="Type a message..." value={text} onChangeText={setText} />
+//         <Pressable style={styles.button} onPress={sendMessage}>
 //           <Text style={styles.buttonText}>Send</Text>
-//         </TouchableOpacity>
+//         </Pressable>
 //       </View>
 //     </View>
 //   );
 // };
-
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -198,6 +170,7 @@ import {
   FlatList,
   StyleSheet,
   Alert,
+  Pressable,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { io, Socket } from "socket.io-client";
@@ -205,7 +178,8 @@ import axios from "axios";
 import NetInfo from "@react-native-community/netinfo";
 import trie from "../utils/trie";
 import { BACKEND_URL } from "@/config";
-import { v4 as uuidv4 } from "uuid";
+import { useTheme } from "../context/ThemeContext";
+import { Send } from "lucide-react-native";
 
 const SERVER_URL = "http://192.168.205.9:2000";
 
@@ -214,7 +188,7 @@ type Message = {
   username: string;
   userId: number;
   content: string;
-  timestamp: string;
+  timestamp: Date;
   room: number;
 };
 
@@ -226,19 +200,21 @@ const ChatScreen = () => {
   const [userId, setUserId] = useState(1);
   const [isConnected, setIsConnected] = useState(false);
   const room = "chatroom1";
+  const { colors } = useTheme();
 
   useEffect(() => {
-    const getUsername = async() =>{
-      try{
-        const username = await AsyncStorage.getItem("username");
-        if(username) {
-          setUsername(username);
+    const getUsername = async () => {
+      try {
+        const storedUsername = await AsyncStorage.getItem("username");
+        if (storedUsername) {
+          setUsername(storedUsername);
         }
-      } catch(e) {
-          Alert.alert("Erroring fetching username")
+      } catch (e) {
+        Alert.alert("Error fetching username");
       }
-    }
+    };
     getUsername();
+
     const newSocket = io(SERVER_URL, { transports: ["websocket"] });
     setSocket(newSocket);
     newSocket.emit("joinRoom", room);
@@ -248,11 +224,10 @@ const ChatScreen = () => {
     });
 
     newSocket.on("chatMessage", (message: Message) => {
-      saveMessageLocally(message);
       setMessages((prev) => [...prev, message]);
     });
 
-    NetInfo.addEventListener((state) => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
       setIsConnected(state.isConnected ?? false);
       if (state.isConnected) {
         syncMessagesWithServer();
@@ -262,6 +237,7 @@ const ChatScreen = () => {
     return () => {
       newSocket.off("chatMessage");
       newSocket.disconnect();
+      unsubscribe();
     };
   }, []);
 
@@ -282,9 +258,9 @@ const ChatScreen = () => {
       if (storedMessages) {
         const messagesArray: Message[] = JSON.parse(storedMessages);
         console.log("Syncing messages:", messagesArray);
-        
+
         const res = await axios.post(`${BACKEND_URL}/api/user/syncmessages`, {
-          messagesArray,
+          messages: messagesArray,
         });
 
         if (res.data.success) {
@@ -306,22 +282,19 @@ const ChatScreen = () => {
       Alert.alert("Abusive word found");
       return;
     }
-
     if (!socket) {
       Alert.alert("Connection error", "Socket is not connected.");
       return;
     }
-
     const message: Message = {
-      id: uuidv4(),
+      id: `${new Date().getTime()}-${Math.floor(Math.random() * 100000)}`,
       username,
       userId,
       content: text,
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp:new Date(),
       room: 1,
     };
-
-    saveMessageLocally(message);
+    await saveMessageLocally(message);
     setText("");
     socket.emit("chatMessage", { message, room });
     if (isConnected) {
@@ -339,14 +312,24 @@ const ChatScreen = () => {
           <View style={[styles.message, item.username === username ? styles.myMessage : styles.otherMessage]}>
             <Text style={styles.sender}>{item.username}</Text>
             <Text style={styles.text}>{item.content}</Text>
-            <Text style={styles.timestamp}>{item.timestamp}</Text>
           </View>
         )}
       />
-      <View style={styles.inputContainer}>
-        <TextInput style={styles.input} placeholder="Type a message..." value={text} onChangeText={setText} />
-        <TouchableOpacity style={styles.button} onPress={sendMessage}>
-          <Text style={styles.buttonText}>Send</Text>
+      <View style={[styles.inputContainer, { backgroundColor: colors.card }]}>
+        <TextInput
+          style={[styles.input, { backgroundColor: colors.background, color: colors.text }]}
+          value={text}
+          onChangeText={setText}
+          placeholder="Type a message..."
+          placeholderTextColor={colors.textSecondary}
+          multiline
+        />
+        <TouchableOpacity
+          style={[styles.sendButton, { backgroundColor: text.trim() ? colors.primary : colors.textSecondary }]}
+          onPress={sendMessage}
+          disabled={!text.trim()}
+        >
+          <Send size={20} color="white" />
         </TouchableOpacity>
       </View>
     </View>
@@ -367,6 +350,15 @@ const styles = StyleSheet.create({
   sender: { fontWeight: "bold", marginBottom: 3 },
   text: { fontSize: 16 },
   timestamp: { fontSize: 12, color: "gray", marginTop: 5, alignSelf: "flex-end" },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });
 
 export default ChatScreen;
+
+

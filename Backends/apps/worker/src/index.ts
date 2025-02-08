@@ -17,14 +17,14 @@ async function main(){
                 console.log(message);
                 const data = await prisma.messages.create({
                     data:{
-                        type : message.type as MessageType,
+                        type : message.type as MessageType || MessageType.message,
                         flightRoomId: Number(message.room),
                         userId : message.userId,
                         content : message.content,
                         timestamp : message.timestamp
                     }
                 })
-                console.log("succesfully done "+ data);
+                console.log("succesfully done ");
             }
         }
     } catch(e){

@@ -47,8 +47,7 @@ const FlightChatRoomDetails: React.FC = () => {
   const handlePassengerSelection = (id: number) => {
     setSelectedPassenger(id);
     storeUserId(id.toString());
-    setShowPassengers(false);
-    setShowUsernames(true);
+    router.push(`/threads?flightId=${flightId}&flightName=${flightName}`)
   };
   const storeUserId = async(id : string) =>{
     try {
@@ -64,12 +63,6 @@ const FlightChatRoomDetails: React.FC = () => {
     } catch (error) {
       console.error('Error saving username:', error);
     }
-  };
-
-  const handleUsernameSelection = (selectedUsername: string) => {
-    setUsername(selectedUsername);
-    storeUsername(selectedUsername);
-    router.push(`/threads?flightId=${flightId}&username=${selectedUsername}&flightName=${flightName}`);
   };
   return (
     <View style={styles.container}>
@@ -96,17 +89,6 @@ const FlightChatRoomDetails: React.FC = () => {
             {passengers.map((passenger) => (
               <TouchableOpacity key={passenger.id} style={styles.passengerItem} onPress={() => handlePassengerSelection(passenger.id)}>
                 <Text style={styles.passengerName}>{passenger.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {showUsernames && (
-          <View style={styles.usernameSelectionCard}>
-            <Text style={styles.cardTitle}>Select Username</Text>
-            {mockUsernames.map((name, index) => (
-              <TouchableOpacity key={index} style={styles.usernameOption} onPress={() => handleUsernameSelection(name)}>
-                <Text style={styles.usernameOptionText}>{name}</Text>
               </TouchableOpacity>
             ))}
           </View>

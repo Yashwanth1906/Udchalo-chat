@@ -7,7 +7,6 @@ import {
   FlatList,
   StyleSheet,
   Alert,
-  Pressable,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { io, Socket } from "socket.io-client";
@@ -65,8 +64,9 @@ const ChatScreen = () => {
     });
 
     const unsubscribe = NetInfo.addEventListener((state) => {
-      setIsConnected(state.isConnected ?? false);
-      if (state.isConnected) {
+      const reachable = state.isInternetReachable ?? false;
+      setIsConnected(reachable);
+      if (reachable) {
         syncMessagesWithServer();
       }
     });
@@ -76,7 +76,7 @@ const ChatScreen = () => {
       newSocket.disconnect();
       unsubscribe();
     };
-  }, []);
+  }, [messages]);
 
   const saveMessageLocally = async (message: Message) => {
     try {
@@ -128,12 +128,12 @@ const ChatScreen = () => {
       username,
       userId,
       content: text,
-      timestamp:new Date(),
+      timestamp: new Date(),
       room: 1,
     };
+    socket.emit("chatMessage", { message, room });
     await saveMessageLocally(message);
     setText("");
-    socket.emit("chatMessage", { message, room });
     if (isConnected) {
       await syncMessagesWithServer();
     }
@@ -146,7 +146,12 @@ const ChatScreen = () => {
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={[styles.message, item.username === username ? styles.myMessage : styles.otherMessage]}>
+          <View
+            style={[
+              styles.message,
+              item.username === username ? styles.myMessage : styles.otherMessage,
+            ]}
+          >
             <Text style={styles.sender}>{item.username}</Text>
             <Text style={styles.text}>{item.content}</Text>
           </View>
@@ -154,7 +159,10 @@ const ChatScreen = () => {
       />
       <View style={[styles.inputContainer, { backgroundColor: colors.card }]}>
         <TextInput
-          style={[styles.input, { backgroundColor: colors.background, color: colors.text }]}
+          style={[
+            styles.input,
+            { backgroundColor: colors.background, color: colors.text },
+          ]}
           value={text}
           onChangeText={setText}
           placeholder="Type a message..."
@@ -162,7 +170,10 @@ const ChatScreen = () => {
           multiline
         />
         <TouchableOpacity
-          style={[styles.sendButton, { backgroundColor: text.trim() ? colors.primary : colors.textSecondary }]}
+          style={[
+            styles.sendButton,
+            { backgroundColor: text.trim() ? colors.primary : colors.textSecondary },
+          ]}
           onPress={sendMessage}
           disabled={!text.trim()}
         >
@@ -172,7 +183,6 @@ const ChatScreen = () => {
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, justifyContent: "center" },
@@ -197,5 +207,3 @@ const styles = StyleSheet.create({
 });
 
 export default ChatScreen;
-
-

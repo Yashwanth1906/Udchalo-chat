@@ -1,0 +1,14 @@
+{
+    "version": 2,
+    "builds": [
+      { "src": "apps/api-server/index.js", "use": "@vercel/node" },
+      { "src": "apps/worker/index.js", "use": "@vercel/node" },
+      { "src": "apps/offlinechat/index.js", "use": "@vercel/node" }
+    ],
+    "routes": [
+      { "src": "/api/(.*)", "dest": "apps/api-server/index.js" },
+      { "src": "/worker/(.*)", "dest": "apps/worker/index.js" },
+      { "src": "/offlinechat/(.*)", "dest": "apps/offlinechat/index.js" }
+    ]
+  }
+  

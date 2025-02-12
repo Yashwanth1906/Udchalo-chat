@@ -132,7 +132,7 @@ async function handleMessage(ws: WebSocket, message: Message) {
 function handleLeave(ws: WebSocket,message? : Message) {
     const clientInfo = clients.get(ws);
     if (!clientInfo) return;
-
+    
     const leaveMessage: Message = {
         type: 'leave',
         userId : message?.userId ||  -1,

@@ -11,4 +11,3 @@
       { "src": "/offlinechat/(.*)", "dest": "apps/offlinechat/index.js" }
     ]
   }
-  
